@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"crypto"
 )
 
 type Config struct {
@@ -11,13 +12,36 @@ type Config struct {
 	TestChecksum		bool
 	SkipFiles			bool
 	Verbose				bool
-	Digest				string
+	DigestHash			crypto.Hash
+	DigestName			string
 	Action				string
 	Action_Write		bool
 	Action_Delete		bool
 	Action_List			bool
 	Action_List_Trim	bool
 	Action_Check		bool
+}
+
+var digestTypes = map[string]crypto.Hash {
+	"md4" : crypto.MD4,
+	"md5" : crypto.MD5,
+	"sha1" : crypto.SHA1,
+	"sha224" : crypto.SHA224,
+	"sha256" : crypto.SHA256,
+	"sha384" : crypto.SHA384,
+	"sha512" : crypto.SHA512,
+	"md5sha1" : crypto.MD5SHA1,
+	"ripemd160" : crypto.RIPEMD160,
+	"sha3_224" : crypto.SHA3_224,
+	"sha3_256" : crypto.SHA3_256,
+	"sha3_384" : crypto.SHA3_384,
+	"sha3_512" : crypto.SHA3_512,
+	"sha512_224" : crypto.SHA512_224,
+	"sha512_256" : crypto.SHA512_256,
+	"blake2s_256" : crypto.BLAKE2s_256,
+	"blake2b_256" : crypto.BLAKE2b_256,
+	"blake2b_384" : crypto.BLAKE2b_384,
+	"blake2b_512" : crypto.BLAKE2b_512,
 }
 
 func NewConfig() *Config {
@@ -31,9 +55,9 @@ func NewConfig() *Config {
 		TestChecksum:			false,
 		SkipFiles:				true,
 		Verbose:				false,
-		Digest:					"sha1",
+		DigestHash:			    crypto.SHA1,
+		DigestName:				"sha1",
 		Action:					"check",
-
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -50,8 +74,7 @@ func (c *Config) ParseCmdlineOpt() {
 	flag.BoolVar(&c.TestChecksum,    "t", c.TestChecksum,    "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
 	flag.BoolVar(&c.SkipFiles,       "s", c.SkipFiles,       "When adding new checksums skip if the file already has checksum data")
 	flag.BoolVar(&c.Verbose,         "v", c.TestChecksum,    "Verbose messages")
-	flag.StringVar(&c.Digest,   "digest", c.Digest, "Set the digest method")
-
+	flag.StringVar(&c.DigestName, "digest", c.DigestName, "Set the digest method")
 	flag.Parse()
 
 	if flag.NArg() == 0 || c.ShowHelp {
@@ -62,6 +85,11 @@ func (c *Config) ParseCmdlineOpt() {
 		} else {
 			os.Exit(0)
 		}
+	}
+
+	if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
+		fmt.Fprintf(os.Stderr, "\nError : unknown hash type '%s'\n", c.DigestName)
+		os.Exit(2)
 	}
 
 	if c.Action_Check {
