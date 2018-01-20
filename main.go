@@ -39,8 +39,22 @@ var config *Config = NewConfig()
 
 const xattribute_name = "integrity."
 
-
-
+func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
+	var err error
+	if _, err = xattr.Get(currentFile.fullpath, xattribute_name + config.DigestName); err != nil {
+		var errorString string
+		errorString = err.Error();
+		if strings.Contains(errorString, "attribute not found") {
+			// We got an error with attribute not found so simply return false and no error
+			return false, nil
+		} else {
+			// We got a different error so return false and the error
+			return false, err
+		}
+	}
+	// We must have an attribute stored
+	return true, nil
+}
 
 func integ_getChecksumRaw (path string, digest_name string) (string, error) {
 	var err error
@@ -58,38 +72,6 @@ func integ_getChecksum (currentFile *integrity_fileCard) (error) {
 		return err
 	}
 	return nil
-}
-
-func integ_hashGetName(hash crypto.Hash) (string, error) {
-	switch hash {
-	case crypto.MD4:
-		return "md4",nil
-	case crypto.MD5:
-		return "md5",nil
-	case crypto.SHA1:
-		return "sha1",nil
-	case crypto.SHA256:
-		return "sha256",nil
-	case crypto.SHA512:
-		return "sha512",nil
-	default:
-		return "",fmt.Errorf("Unknown hash type: %d", hash)
-	}
-}
-
-func integ_hashGetHashType (hashname string) (crypto.Hash, error) {
-	switch hashname {
-	case "md5":
-		return crypto.MD5,nil
-	case "sha1":
-		return crypto.SHA1,nil
-	case "sha256":
-		return crypto.SHA256,nil
-	case "sha512":
-		return crypto.SHA512,nil
-	default:
-		return 0,fmt.Errorf("integ_hashGetHashType: Unknown hash type: %s", hashname)
-	}
 }
 
 func integ_removeChecksum (currentFile *integrity_fileCard) (error) {
@@ -190,30 +172,32 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		currentFile.FileInfo = &fileinfo
 		currentFile.fullpath = path
 
+		var fileDisplayPath string
+		if config.Option_ShortPaths {
+			fileDisplayPath = fileinfo.Name()
+		} else {
+			fileDisplayPath = path
+		}
+
 		switch config.Action {
-			case "list" , "list_trim":
+			case "list":
 				if err = integ_getChecksum(&currentFile); err != nil {
 					var errorString string
 					errorString = err.Error();
 					if strings.Contains(errorString, "attribute not found") {
 						if config.Verbose {
-							fmt.Printf("%s : no checksum stored\n", path)
+							fmt.Printf("%s : [no checksum stored]\n", fileDisplayPath)
 						}
 					} else {
-						fmt.Printf("Error; %s\n", err.Error());
+						fmt.Printf("%s : Error : %s\n", fileDisplayPath, err.Error());
 					}
 				} else {
-					var file_display string
-					if config.Action == "list_trim" {
-						// ToDO: change this to use the pointer in the currentFile struct
-						file_display = fileinfo.Name()
+					if config.Option_ShortPaths {
+						// Only show the file and checksum when ShortPaths is on
+						// This is to mimic the output of sha1sum
+						fmt.Printf("%s : %s\n", fileDisplayPath, currentFile.checksum)
 					} else {
-						file_display = path
-					}
-					if config.Verbose {
- 						fmt.Printf("%s : %s : %s\n", file_display, currentFile.digest_name, currentFile.checksum)
-					} else {
-						fmt.Printf("%s : %s\n", file_display, currentFile.checksum)
+						fmt.Printf("%s : %s : %s\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
 					}
 				}
 			case "delete":
@@ -222,27 +206,54 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 						fmt.Printf("Error removing checksum; %s\n", err.Error());
 					}
 				}
-			case "write":
+			case "add":
+
+				if !config.Option_Force {
+					var haveDigestStored bool
+					haveDigestStored, err = integ_testChecksumStored(&currentFile)
+					if err != nil {
+						if config.Verbose {
+							fmt.Printf("Error testing for stored checksum; %s\n", err.Error());
+						} else {
+							fmt.Printf("%s : FAILED\n", fileDisplayPath)
+						}
+						return nil
+					} else if haveDigestStored {
+						if config.Verbose {
+							fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName);
+						}
+						return nil
+					}
+				}
+
+				// If we've reached here we must want to add the checksum
 				if err = integ_addChecksum(&currentFile); err != nil {
 					if config.Verbose {
-						fmt.Printf("Error adding checksum; %s\n", err.Error());
+						fmt.Printf("%s : %s : Error : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error());
+					} else {
+						fmt.Printf("%s : FAILED\n", fileDisplayPath)
 					}
 				} else {
 					if config.Verbose {
-						fmt.Printf("%s : %s : %s : added\n", path, currentFile.digest_name, currentFile.checksum)
+						fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
 					} else {
-						fmt.Printf("%s : added\n", path)
+						fmt.Printf("%s : %s : added\n", fileDisplayPath, currentFile.digest_name)
 					}
 				}
+
 			case "check":
 				if err = integ_checkChecksum(&currentFile); err != nil {
 					if config.Verbose {
 						fmt.Printf("Error checking checksum; %s\n", err.Error());
 					} else {
-						fmt.Printf("%s : FAILED\n", path)
+						fmt.Printf("%s : FAILED\n", fileDisplayPath)
 					}
 				} else {
-					fmt.Printf("%s : PASSED\n", path)
+					if config.Verbose {
+						fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+					} else {
+						fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+					}
 				}
 			default:
 				fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n",config.Action)
@@ -264,10 +275,16 @@ func main() {
 		}
 
 		if (pathStat.IsDir()) {
-			// Walk the directory structure
-			err := filepath.Walk(path, handle_path)
-			if err != nil {
-				log.Fatal(err)
+			if config.Option_Recursive {
+				// Walk the directory structure
+				err := filepath.Walk(path, handle_path)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				if config.Verbose {
+					fmt.Printf("%s : skipping directory\n", path);
+				}
 			}
 		} else {
 			path_fileinfo,err := os.Stat(path)

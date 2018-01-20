@@ -7,20 +7,6 @@ import (
 	"crypto"
 )
 
-type Config struct {
-	ShowHelp			bool
-	TestChecksum		bool
-	SkipFiles			bool
-	Verbose				bool
-	DigestHash			crypto.Hash
-	DigestName			string
-	Action				string
-	Action_Write		bool
-	Action_Delete		bool
-	Action_List			bool
-	Action_List_Trim	bool
-	Action_Check		bool
-}
 
 var digestTypes = map[string]crypto.Hash {
 	"md4" : crypto.MD4,
@@ -44,20 +30,42 @@ var digestTypes = map[string]crypto.Hash {
 	"blake2b_512" : crypto.BLAKE2b_512,
 }
 
+
+type Config struct {
+	ShowHelp        	bool
+	TestChecksum    	bool
+	Verbose          	bool
+	DigestHash       	crypto.Hash
+	DigestName       	string
+	Action          	string
+	Action_Add       	bool
+	Action_Delete    	bool
+	Action_List     	bool
+	Action_List_Trim 	bool
+	Action_Check     	bool
+	Option_Force		bool
+	Option_ShortPaths	bool
+	Option_Recursive	bool
+	Option_AllDigests	bool
+}
+
 func NewConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:				false,
-		Action_Check:			false,
-		Action_Write:			false,
-		Action_Delete:			false,
-		Action_List:			false,
-		Action_List_Trim:		false,
-		TestChecksum:			false,
-		SkipFiles:				true,
-		Verbose:				false,
-		DigestHash:			    crypto.SHA1,
-		DigestName:				"sha1",
-		Action:					"check",
+		ShowHelp:         	false,
+		Action_Check:     	false,
+		Action_Add:       	false,
+		Action_Delete:    	false,
+		Action_List:      	false,
+		Action_List_Trim: 	false,
+		Option_Force:		false,
+		Option_ShortPaths:	false,
+		Option_Recursive:	false,
+		Option_AllDigests:  false,
+		TestChecksum:     	false,
+		Verbose:          	false,
+		DigestHash:       	crypto.SHA1,
+		DigestName:       	"sha1",
+		Action:           	"check",
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -65,16 +73,40 @@ func NewConfig() *Config {
 
 func (c *Config) ParseCmdlineOpt() {
 
-	flag.BoolVar(&c.ShowHelp,        "h", c.ShowHelp,        "Show help")
-	flag.BoolVar(&c.Action_Check,    "c", c.Action_Check,    "Check the checksum of FILE")
-	flag.BoolVar(&c.Action_Write,    "a", c.Action_Write,    "Add a new checksum to FILE")
-	flag.BoolVar(&c.Action_Delete,   "d", c.Action_Delete,   "Remove the checksum from FILE")
-	flag.BoolVar(&c.Action_List,     "l", c.Action_List,     "List files, with path, along with checksums as per a shasum output")
-	flag.BoolVar(&c.Action_List_Trim,"f", c.Action_List_Trim,"List files, without paths, along with checksums as per a shasum output,")
-	flag.BoolVar(&c.TestChecksum,    "t", c.TestChecksum,    "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
-	flag.BoolVar(&c.SkipFiles,       "s", c.SkipFiles,       "When adding new checksums skip if the file already has checksum data")
-	flag.BoolVar(&c.Verbose,         "v", c.TestChecksum,    "Verbose messages")
-	flag.StringVar(&c.DigestName, "digest", c.DigestName, "Set the digest method")
+	flag.BoolVar(&c.ShowHelp,"h",    c.ShowHelp, "show this help")
+	flag.BoolVar(&c.ShowHelp,"help", c.ShowHelp, "show this help")
+
+	flag.BoolVar(&c.Action_Check, "c", 		c.Action_Check,	"check the checksum of the file matches the one stored in the extended attributes")
+	flag.BoolVar(&c.Action_Check, "check", 	c.Action_Check, "check the checksum of the file matches the one stored in the extended attributes")
+
+	flag.BoolVar(&c.Action_Add, "a",   c.Action_Add, "calculate the checksum of the file and add it to the extended attributes")
+	flag.BoolVar(&c.Action_Add, "add", c.Action_Add, "calculate the checksum of the file and add it to the extended attributes")
+
+	flag.BoolVar(&c.Action_Delete, "d",      c.Action_Delete, "delete a stored checksum")
+	flag.BoolVar(&c.Action_Delete, "delete", c.Action_Delete, "delete a stored checksum")
+
+	flag.BoolVar(&c.Action_List, "l",    c.Action_List, "list the checksum stored for a file, as per shasum output")
+	flag.BoolVar(&c.Action_List, "list", c.Action_List, "list the checksum stored for a file, as per shasum output")
+
+	flag.BoolVar(&c.Option_AllDigests, "x",   c.Option_Force,"list all digests stored not just the default digest")
+	flag.BoolVar(&c.Option_AllDigests, "all", c.Option_Force,"list all digests stored not just the default digest")
+
+	flag.BoolVar(&c.Option_Force, "f",     c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
+	flag.BoolVar(&c.Option_Force, "force", c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
+
+	flag.BoolVar(&c.Verbose, "v",       c.Verbose, "print more verbose messages")
+	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "print more verbose messages")
+
+	flag.StringVar(&c.DigestName, "digest", c.DigestName, "set the digest method (see help for list of available options")
+
+	flag.BoolVar(&c.Option_ShortPaths, "s",           c.Option_ShortPaths,"show only file name when showing file names, useful for generating sha1sum files")
+	flag.BoolVar(&c.Option_ShortPaths, "short-paths", c.Option_ShortPaths,"show only file name when showing file names, useful for generating sha1sum files")
+
+	flag.BoolVar(&c.Option_Recursive, "r",         c.Option_Recursive,"recurse into directories")
+	flag.BoolVar(&c.Option_Recursive, "recursive", c.Option_Recursive,"recurse into directories")
+
+	flag.BoolVar(&c.TestChecksum, "t", c.TestChecksum,    "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
+
 	flag.Parse()
 
 	if flag.NArg() == 0 || c.ShowHelp {
@@ -96,12 +128,10 @@ func (c *Config) ParseCmdlineOpt() {
 		c.Action = "check"
 	} else if c.Action_Delete {
 		c.Action = "delete"
-	} else if c.Action_Write {
-		c.Action = "write"
+	} else if c.Action_Add {
+		c.Action = "add"
 	} else if c.Action_List {
 		c.Action = "list"
-	} else if c.Action_List_Trim {
-		c.Action = "list_trim"
 	}
 }
 
@@ -156,6 +186,35 @@ Info:
   e.g. rsync -X source destination
        osx : cp -p source destination
 
-  This script assumes opensll is available in your path.`)
+  This script assumes opensll is available in your path.
+
+  Design Choices
+    By default this util is meant to be quite quiet. I.e. when adding trying to add a checksum to a file with on stored
+    already, the app will simply skip over the file and continue. This is because the util is meant to be ran over large
+    numbers of data files which may or may not already have checksum data so output is kept to a minimum.
+
+    Add the -v flag to add more verbose output.
+
+  Supported Checksum Digests
+    * md4
+    * md5
+    * sha1
+    * sha224
+    * sha256
+    * sha384
+    * sha512
+    * md5sha1
+    * ripemd160
+    * sha3_224
+    * sha3_256
+    * sha3_384
+    * sha3_512
+    * sha512_224
+    * sha512_256
+    * blake2s_256
+    * blake2b_256
+    * blake2b_384
+    * blake2b_512
+  `)
 
 }
