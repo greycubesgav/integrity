@@ -32,40 +32,44 @@ var digestTypes = map[string]crypto.Hash {
 
 
 type Config struct {
-	ShowHelp        	bool
-	TestChecksum    	bool
-	Verbose          	bool
-	DigestHash       	crypto.Hash
-	DigestName       	string
-	Action          	string
-	Action_Add       	bool
-	Action_Delete    	bool
-	Action_List     	bool
-	Action_List_Trim 	bool
-	Action_Check     	bool
-	Option_Force		bool
-	Option_ShortPaths	bool
-	Option_Recursive	bool
-	Option_AllDigests	bool
+	ShowHelp				bool
+	//TestChecksum			bool
+	Verbose					bool
+	DigestHash				crypto.Hash
+	DigestName				string
+	Action					string
+	Action_Add				bool
+	Action_Delete			bool
+	Action_List				bool
+	Option_List_sha1sum		bool
+	Option_List_md5sum		bool
+	Action_Check			bool
+	Option_Force			bool
+	Option_ShortPaths		bool
+	Option_Recursive		bool
+	Option_AllDigests		bool
+	Option_DefaultDigest	bool
 }
 
 func NewConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:         	false,
-		Action_Check:     	false,
-		Action_Add:       	false,
-		Action_Delete:    	false,
-		Action_List:      	false,
-		Action_List_Trim: 	false,
-		Option_Force:		false,
-		Option_ShortPaths:	false,
-		Option_Recursive:	false,
-		Option_AllDigests:  false,
-		TestChecksum:     	false,
-		Verbose:          	false,
-		DigestHash:       	crypto.SHA1,
-		DigestName:       	"sha1",
-		Action:           	"check",
+		ShowHelp:				false,
+		Action_Check:			false,
+		Action_Add:				false,
+		Action_Delete:			false,
+		Action_List:			false,
+		Option_List_sha1sum:	false,
+		Option_List_md5sum:		false,
+		Option_Force:			false,
+		Option_ShortPaths:		false,
+		Option_Recursive:		false,
+		Option_AllDigests:		false,
+		Option_DefaultDigest:	false,
+		//TestChecksum:			false,
+		Verbose:				false,
+		DigestHash:				crypto.SHA1,
+		DigestName:				"",
+		Action:					"check",
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -76,7 +80,7 @@ func (c *Config) ParseCmdlineOpt() {
 	flag.BoolVar(&c.ShowHelp,"h",    c.ShowHelp, "show this help")
 	flag.BoolVar(&c.ShowHelp,"help", c.ShowHelp, "show this help")
 
-	flag.BoolVar(&c.Action_Check, "c", 		c.Action_Check,	"check the checksum of the file matches the one stored in the extended attributes")
+	flag.BoolVar(&c.Action_Check, "c", 	    c.Action_Check,	"check the checksum of the file matches the one stored in the extended attributes")
 	flag.BoolVar(&c.Action_Check, "check", 	c.Action_Check, "check the checksum of the file matches the one stored in the extended attributes")
 
 	flag.BoolVar(&c.Action_Add, "a",   c.Action_Add, "calculate the checksum of the file and add it to the extended attributes")
@@ -85,11 +89,15 @@ func (c *Config) ParseCmdlineOpt() {
 	flag.BoolVar(&c.Action_Delete, "d",      c.Action_Delete, "delete a stored checksum")
 	flag.BoolVar(&c.Action_Delete, "delete", c.Action_Delete, "delete a stored checksum")
 
-	flag.BoolVar(&c.Action_List, "l",    c.Action_List, "list the checksum stored for a file, as per shasum output")
-	flag.BoolVar(&c.Action_List, "list", c.Action_List, "list the checksum stored for a file, as per shasum output")
+	flag.BoolVar(&c.Action_List, "l",    c.Action_List, "list the checksum stored for a file")
+	flag.BoolVar(&c.Action_List, "list", c.Action_List, "list the checksum stored for a file")
 
-	flag.BoolVar(&c.Option_AllDigests, "x",   c.Option_Force,"list all digests stored not just the default digest")
-	flag.BoolVar(&c.Option_AllDigests, "all", c.Option_Force,"list all digests stored not just the default digest")
+	flag.BoolVar(&c.Option_List_sha1sum, "sha1sum", c.Option_List_sha1sum, "list the checksum stored for a file as per sha1sum, not this does not exclude the use of other digest formats!")
+
+	flag.BoolVar(&c.Option_List_md5sum, "md5sum", c.Option_List_md5sum, "list the checksum stored for a file as per md5sum, not this does not exclude the use of other digest formats!")
+
+	flag.BoolVar(&c.Option_AllDigests, "x",   c.Option_Force,"include all digests, not just the default digest. Only applies to -d --delete and -l --list options")
+	flag.BoolVar(&c.Option_AllDigests, "all", c.Option_Force,"include all digests, not just the default digest. Only applies to -d --delete and -l --list options")
 
 	flag.BoolVar(&c.Option_Force, "f",     c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
 	flag.BoolVar(&c.Option_Force, "force", c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
@@ -105,7 +113,7 @@ func (c *Config) ParseCmdlineOpt() {
 	flag.BoolVar(&c.Option_Recursive, "r",         c.Option_Recursive,"recurse into directories")
 	flag.BoolVar(&c.Option_Recursive, "recursive", c.Option_Recursive,"recurse into directories")
 
-	flag.BoolVar(&c.TestChecksum, "t", c.TestChecksum,    "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
+	//flag.BoolVar(&c.TestChecksum, "t", c.TestChecksum, "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
 
 	flag.Parse()
 
@@ -119,8 +127,23 @@ func (c *Config) ParseCmdlineOpt() {
 		}
 	}
 
+	// If we haven't been passed a digest name
+	// Try and get it from the environment
+	// If this doesn't work, set it to sha1
+	if c.DigestName == "" {
+		var envDigest string
+		envDigest = os.Getenv("I_DIGEST")
+
+		if envDigest != "" {
+			c.DigestName = envDigest
+		} else {
+			c.DigestName = "sha1"
+			c.Option_DefaultDigest = true
+		}
+	}
+
 	if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
-		fmt.Fprintf(os.Stderr, "\nError : unknown hash type '%s'\n", c.DigestName)
+		fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
 		os.Exit(2)
 	}
 
@@ -141,7 +164,7 @@ func printHelp() {
 	flag.PrintDefaults()
 	fmt.Println(`Examples:
   Check a files integrity checksum
-    ${0##*/} myfile.jpg
+   integrity myfile.jpg
 
   Adding integrity data to a file
     integrity -a data_01.dat
@@ -183,19 +206,50 @@ func printHelp() {
 Info:
   When copying files, extended attributes should be preserved to ensure
   integrity data is copied.
-  e.g. rsync -X source destination
-       osx : cp -p source destination
+  e.g.
+	rsync -X source destination
+    cp -p source destination
 
-  This script assumes opensll is available in your path.
+  The digest can be set through an environment variable I_DIGEST. This allows for a you to set your prefered digest
+  method without needing to set it on the command line each time.
+
+  For example:
+	I_DIGEST='sha256' integrity -a file.dat
+
 
   Design Choices
-    By default this util is meant to be quite quiet. I.e. when adding trying to add a checksum to a file with on stored
-    already, the app will simply skip over the file and continue. This is because the util is meant to be ran over large
-    numbers of data files which may or may not already have checksum data so output is kept to a minimum.
 
-    Add the -v flag to add more verbose output.
+    * By default this util is meant to be quite quiet. i.e. when adding trying to add a checksum to a file with one
+	  stored already, the app will simply skip over the file and continue. This is because the util is meant to be ran
+	  over large numbers of data files which may or may not already have checksum data so output is kept to a minimum.
+
+	  For example:
+
+	     integrity -a -r directory/
+	     Add the default checksum data too all files, 'added' will be shown for all files which had checksum data added.
+		 Nothing will be shown for the others.
+
+      Add the -v flag to see more verbose output.
+
+	* The util is designed to do "sensible" things with basic options
+
+	  For example:
+
+	     integrity -c file.dat
+	     Check a file's default checksum (sha1)
+
+	     integrity -a file.dat
+	     Add a checksum using the default digest (sha1), displaying no output if the the action is sucessful, skipping
+	     if the file already has one stored
+
+	     integrity -d file.dat
+	     Remove the default checksum (sha1) data, skipping if there is none stored
+
+         integrity -l file.dat
+	     Display a file's default checksum (sha1) data, skipping if there is none stored
 
   Supported Checksum Digests
+
     * md4
     * md5
     * sha1
