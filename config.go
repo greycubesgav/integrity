@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"crypto"
+	"github.com/pborman/getopt/v2"
 )
 
 
@@ -77,54 +78,38 @@ func NewConfig() *Config {
 
 func (c *Config) ParseCmdlineOpt() {
 
-	flag.BoolVar(&c.ShowHelp,"h",    c.ShowHelp, "show this help")
-	flag.BoolVar(&c.ShowHelp,"help", c.ShowHelp, "show this help")
+	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
+	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes")
+	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
+	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
+	getopt.FlagLong(&c.Action_List, "list", 'l', "list the checksum stored for a file")
 
-	flag.BoolVar(&c.Action_Check, "c", 	    c.Action_Check,	"check the checksum of the file matches the one stored in the extended attributes")
-	flag.BoolVar(&c.Action_Check, "check", 	c.Action_Check, "check the checksum of the file matches the one stored in the extended attributes")
+	getopt.FlagLong(&c.Option_List_sha1sum, "sha1sum", 0, "list the checksum stored for a file as per the output of sha1sum, note this does not exclude the use of other digest formats!")
+	getopt.FlagLong(&c.Option_List_md5sum,   "md5sum", 0, "list the checksum stored for a file as per the output of md5sum, note this does not exclude the use of other digest formats!")
 
-	flag.BoolVar(&c.Action_Add, "a",   c.Action_Add, "calculate the checksum of the file and add it to the extended attributes")
-	flag.BoolVar(&c.Action_Add, "add", c.Action_Add, "calculate the checksum of the file and add it to the extended attributes")
+	getopt.FlagLong(&c.Option_AllDigests, "all", 'x', "include all digests, not just the default digest. Only applies to --delete and --list options")
 
-	flag.BoolVar(&c.Action_Delete, "d",      c.Action_Delete, "delete a stored checksum")
-	flag.BoolVar(&c.Action_Delete, "delete", c.Action_Delete, "delete a stored checksum")
+	getopt.FlagLong(&c.Option_Force, "force", 'f', "force the calculation and writing of a checksum even if one already exists (default behaviour is to skip files with checksums already stored)")
 
-	flag.BoolVar(&c.Action_List, "l",    c.Action_List, "list the checksum stored for a file")
-	flag.BoolVar(&c.Action_List, "list", c.Action_List, "list the checksum stored for a file")
+	getopt.FlagLong(&c.Verbose, "verbose", 'v', "print more verbose messages")
 
-	flag.BoolVar(&c.Option_List_sha1sum, "sha1sum", c.Option_List_sha1sum, "list the checksum stored for a file as per sha1sum, not this does not exclude the use of other digest formats!")
+	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available")
 
-	flag.BoolVar(&c.Option_List_md5sum, "md5sum", c.Option_List_md5sum, "list the checksum stored for a file as per md5sum, not this does not exclude the use of other digest formats!")
+	getopt.FlagLong(&c.Option_ShortPaths, "short-paths", 's', "show only file name when showing file names, useful for generating sha1sum files")
 
-	flag.BoolVar(&c.Option_AllDigests, "x",   c.Option_Force,"include all digests, not just the default digest. Only applies to -d --delete and -l --list options")
-	flag.BoolVar(&c.Option_AllDigests, "all", c.Option_Force,"include all digests, not just the default digest. Only applies to -d --delete and -l --list options")
+	getopt.FlagLong(&c.Option_Recursive, "recursive", 'r', "recurse into sub-directories")
 
-	flag.BoolVar(&c.Option_Force, "f",     c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
-	flag.BoolVar(&c.Option_Force, "force", c.Option_Force,"force the writing of a checksum even if it already exists (default behaviour is to skip files with checksums already stored")
+	getopt.Parse()
 
-	flag.BoolVar(&c.Verbose, "v",       c.Verbose, "print more verbose messages")
-	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "print more verbose messages")
+	if getopt.NArgs() == 0 {
+		getopt.Usage()
+		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
+		os.Exit(1)
+	}
 
-	flag.StringVar(&c.DigestName, "digest", c.DigestName, "set the digest method (see help for list of available options")
-
-	flag.BoolVar(&c.Option_ShortPaths, "s",           c.Option_ShortPaths,"show only file name when showing file names, useful for generating sha1sum files")
-	flag.BoolVar(&c.Option_ShortPaths, "short-paths", c.Option_ShortPaths,"show only file name when showing file names, useful for generating sha1sum files")
-
-	flag.BoolVar(&c.Option_Recursive, "r",         c.Option_Recursive,"recurse into directories")
-	flag.BoolVar(&c.Option_Recursive, "recursive", c.Option_Recursive,"recurse into directories")
-
-	//flag.BoolVar(&c.TestChecksum, "t", c.TestChecksum, "When adding a new checksum test if the existing checksum 'looks' correct, skip if it does")
-
-	flag.Parse()
-
-	if flag.NArg() == 0 || c.ShowHelp {
-		printHelp()
-		if flag.NFlag() == 0 {
-			fmt.Fprint(os.Stderr, "Error : no arguments given\n")
-			os.Exit(1)
-		} else {
-			os.Exit(0)
-		}
+	if c.ShowHelp {
+		getopt.Usage()
+		os.Exit(0)
 	}
 
 	// If we haven't been passed a digest name

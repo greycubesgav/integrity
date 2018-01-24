@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"flag"
 	"os"
 	"path/filepath"
+	"github.com/pborman/getopt/v2"
 	"log"
 	"github.com/pkg/xattr"
 	"io"
@@ -196,8 +196,10 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
 		} else if config.Option_List_md5sum {
 			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
-		} else {
+		} else if config.Verbose || config.Option_AllDigests {
 			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
+		} else {
+			fmt.Printf("%s : %s\n", fileDisplayPath, currentFile.checksum)
 		}
 	}
 	return nil
@@ -215,9 +217,9 @@ func integ_generatefileDisplayPath (currentFile *integrity_fileCard) (string) {
 
 func handle_path(path string, fileinfo os.FileInfo, err error) error {
 
-	// ToDo: Refactor output to use command function
+	// ToDo: Refactor output to use common print function
 	//       Something that takes the file, the message, and whether its an error type or not?
-	//       Poly morphic to add error on end if we're printing error?
+	//       Polymorphic to add error on end if we're printing error?
 
 	if ! fileinfo.IsDir() {
 		var currentFile integrity_fileCard
@@ -303,18 +305,27 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 
 		case "check":
-			if err = integ_checkChecksum(&currentFile); err != nil {
-				if config.Verbose {
-					fmt.Printf("Error checking checksum; %s\n", err.Error())
+			var haveDigestStored bool
+			haveDigestStored, err = integ_testChecksumStored(&currentFile)
+			if haveDigestStored {
+				if err = integ_checkChecksum(&currentFile); err != nil {
+					if config.Verbose {
+						fmt.Printf("Error checking checksum; %s\n", err.Error())
+					} else {
+						fmt.Printf("%s : FAILED\n", fileDisplayPath)
+					}
 				} else {
-					fmt.Printf("%s : FAILED\n", fileDisplayPath)
+					if config.Verbose {
+						fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+					} else {
+						fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+					}
 				}
 			} else {
 				if config.Verbose {
-					fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-				} else {
-					fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+					fmt.Printf("%s : %s : no checksum, skipped\n", fileDisplayPath, config.DigestName)
 				}
+				return nil
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)
@@ -327,7 +338,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 
 func main() {
 
-	for _, path := range flag.Args() {
+	for _, path := range getopt.Args() {
 
 		pathStat, err := os.Stat(path)
 		// If we can stat the given file
