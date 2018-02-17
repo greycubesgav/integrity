@@ -31,7 +31,6 @@ type integrity_fileCard struct {
 }
 
 
-
 var config *Config = NewConfig()
 
 const xattribute_name = "user.integrity."
@@ -53,6 +52,21 @@ func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
 	return true, nil
 }
 
+func integ_swapXattrib (currentFile *integrity_fileCard) (error) {
+	var err error
+	var data []byte
+	if data, err = xattr.Get(currentFile.fullpath, "integ.sha1" ); err != nil {
+		return err
+	}
+	if err = xattr.Set(currentFile.fullpath, xattribute_name + config.DigestName, data); err != nil {
+		return err
+	}
+	if err = xattr.Remove(currentFile.fullpath, "integ.sha1"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func integ_getChecksumRaw (path string, digest_name string) (string, error) {
 	var err error
 	var data []byte
@@ -70,6 +84,9 @@ func integ_getChecksum (currentFile *integrity_fileCard) (error) {
 	}
 	return nil
 }
+
+
+
 
 // integ_removeChecksum tries to remove a defined checksum attribute
 // if we get an error because the attribute didn't exist we suppress the error and simple return false
@@ -326,6 +343,20 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					fmt.Printf("%s : %s : no checksum, skipped\n", fileDisplayPath, config.DigestName)
 				}
 				return nil
+			}
+		case "transform":
+			if err = integ_swapXattrib(&currentFile); err != nil {
+				if config.Verbose {
+					fmt.Printf("Error rename checksum; %s\n", err.Error())
+				} else {
+					fmt.Printf("%s : FAILED\n", fileDisplayPath)
+				}
+			} else {
+				if config.Verbose {
+					fmt.Printf("%s : %s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+				} else {
+					fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name)
+				}
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)

@@ -42,6 +42,7 @@ type Config struct {
 	Action_Add				bool
 	Action_Delete			bool
 	Action_List				bool
+	Action_Transform		bool
 	Option_List_sha1sum		bool
 	Option_List_md5sum		bool
 	Action_Check			bool
@@ -59,6 +60,7 @@ func NewConfig() *Config {
 		Action_Add:				false,
 		Action_Delete:			false,
 		Action_List:			false,
+		Action_Transform:		false,
 		Option_List_sha1sum:	false,
 		Option_List_md5sum:		false,
 		Option_Force:			false,
@@ -83,6 +85,7 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
 	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
 	getopt.FlagLong(&c.Action_List, "list", 'l', "list the checksum stored for a file")
+	getopt.FlagLong(&c.Action_Transform, "transform", 't', "transform an old extended attribute value name to the current format")
 
 	getopt.FlagLong(&c.Option_List_sha1sum, "sha1sum", 0, "list the checksum stored for a file as per the output of sha1sum, note this does not exclude the use of other digest formats!")
 	getopt.FlagLong(&c.Option_List_md5sum,   "md5sum", 0, "list the checksum stored for a file as per the output of md5sum, note this does not exclude the use of other digest formats!")
@@ -101,15 +104,16 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.Parse()
 
+	if c.ShowHelp {
+		getopt.Usage()
+		printHelp()
+		os.Exit(0)
+	}
+
 	if getopt.NArgs() == 0 {
 		getopt.Usage()
 		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
 		os.Exit(1)
-	}
-
-	if c.ShowHelp {
-		getopt.Usage()
-		os.Exit(0)
 	}
 
 	// If we haven't been passed a digest name
@@ -140,6 +144,8 @@ func (c *Config) ParseCmdlineOpt() {
 		c.Action = "add"
 	} else if c.Action_List {
 		c.Action = "list"
+	} else if c.Action_Transform {
+		c.Action = "transform"
 	}
 }
 
