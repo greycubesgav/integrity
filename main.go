@@ -34,7 +34,7 @@ type integrity_fileCard struct {
 
 var config *Config = NewConfig()
 
-const xattribute_name = "integrity."
+const xattribute_name = "user.integrity."
 
 func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
 	var err error
