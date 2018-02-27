@@ -1,13 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"crypto"
 	"github.com/pborman/getopt/v2"
 )
 
+const integrity_version = "0.1.10"
+const integrity_website = "https://www.example.com"
 
 var digestTypes = map[string]crypto.Hash {
 	"md4" : crypto.MD4,
@@ -105,12 +106,13 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.Parse()
 
 	if c.ShowHelp {
-		getopt.Usage()
 		printHelp()
 		os.Exit(0)
 	}
 
 	if getopt.NArgs() == 0 {
+		fmt.Printf("integrity version %s\n", integrity_version)
+		fmt.Printf("Web site: %s\n", integrity_website)
 		getopt.Usage()
 		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
 		os.Exit(1)
@@ -150,10 +152,27 @@ func (c *Config) ParseCmdlineOpt() {
 }
 
 func printHelp() {
-	fmt.Printf("Usage: integrity [OPTIONS] FILE|PATH\n")
-	fmt.Println("Options:")
-	flag.PrintDefaults()
-	fmt.Println(`Examples:
+	fmt.Printf("integrity version %s\n", integrity_version)
+	fmt.Printf("Web site: %s\n", integrity_website)
+	fmt.Printf(`
+integrity is a file checksum and verification tool capable of calculating
+a number of different types of checksum and storing the result in the file's
+extended attributes. This allows the file to be moved between directories
+or copied to another machine while maintaining the checksum data
+
+This checksum data can be used to verify the integrity of the file and ensure
+it's contents are still valid.
+
+The checksum data is also useful for efficiently finding duplicate files in
+different directories'
+
+Usage: integrity [OPTIONS] FILE|PATH
+
+Options:`)
+	getopt.Usage()
+	fmt.Println(`
+Usage Examples:
+
   Check a files integrity checksum
    integrity myfile.jpg
 
@@ -191,24 +210,22 @@ func printHelp() {
   Locate duplicate files within a directory structure (osx)
     integrity_dupes directory
 
-  Transfering a file to a remote machine maintaining integrity metadata
-    rsync -X data_01.dat remote_server:/destination/
+Further Information:
 
-Info:
   When copying files, extended attributes should be preserved to ensure
   integrity data is copied.
-  e.g.
-	rsync -X source destination
+
+  For example:
+    rsync -X source destination
     cp -p source destination
 
   The digest can be set through an environment variable I_DIGEST. This allows for a you to set your prefered digest
   method without needing to set it on the command line each time.
 
   For example:
-	I_DIGEST='sha256' integrity -a file.dat
+    I_DIGEST='sha256' integrity -a file.dat
 
-
-  Design Choices
+Design Choices:
 
     * By default this util is meant to be quite quiet. i.e. when adding trying to add a checksum to a file with one
 	  stored already, the app will simply skip over the file and continue. This is because the util is meant to be ran
@@ -222,7 +239,7 @@ Info:
 
       Add the -v flag to see more verbose output.
 
-	* The util is designed to do "sensible" things with basic options
+	* The utility is designed to do "sensible" things with basic options
 
 	  For example:
 
@@ -239,7 +256,7 @@ Info:
          integrity -l file.dat
 	     Display a file's default checksum (sha1) data, skipping if there is none stored
 
-  Supported Checksum Digests
+Supported Checksum Digest Algorithms:
 
     * md4
     * md5
