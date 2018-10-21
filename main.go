@@ -209,9 +209,9 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 			return err
 		}
 	} else {
-		if config.Option_List_sha1sum {
+		if config.DisplayFormat == "sha1sum" {
 			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
-		} else if config.Option_List_md5sum {
+		} else if config.DisplayFormat == "md5sum" {
 			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
 		} else if config.Verbose || config.Option_AllDigests {
 			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)

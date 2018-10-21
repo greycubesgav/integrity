@@ -40,12 +40,13 @@ type Config struct {
 	DigestHash				crypto.Hash
 	DigestName				string
 	Action					string
+	DisplayFormat           string
 	Action_Add				bool
 	Action_Delete			bool
 	Action_List				bool
 	Action_Transform		bool
-	Option_List_sha1sum		bool
-	Option_List_md5sum		bool
+	//Option_List_sha1sum		bool
+	//Option_List_md5sum		bool
 	Action_Check			bool
 	Option_Force			bool
 	Option_ShortPaths		bool
@@ -62,8 +63,8 @@ func NewConfig() *Config {
 		Action_Delete:			false,
 		Action_List:			false,
 		Action_Transform:		false,
-		Option_List_sha1sum:	false,
-		Option_List_md5sum:		false,
+		//Option_List_sha1sum:	false,
+		//Option_List_md5sum:		false,
 		Option_Force:			false,
 		Option_ShortPaths:		false,
 		Option_Recursive:		false,
@@ -73,6 +74,7 @@ func NewConfig() *Config {
 		Verbose:				false,
 		DigestHash:				crypto.SHA1,
 		DigestName:				"",
+		DisplayFormat:          "",
 		Action:					"check",
 	}
 	c.ParseCmdlineOpt()
@@ -88,8 +90,8 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.FlagLong(&c.Action_List, "list", 'l', "list the checksum stored for a file")
 	getopt.FlagLong(&c.Action_Transform, "transform", 't', "transform an old extended attribute value name to the current format")
 
-	getopt.FlagLong(&c.Option_List_sha1sum, "sha1sum", 0, "list the checksum stored for a file as per the output of sha1sum, note this does not exclude the use of other digest formats!")
-	getopt.FlagLong(&c.Option_List_md5sum,   "md5sum", 0, "list the checksum stored for a file as per the output of md5sum, note this does not exclude the use of other digest formats!")
+	//getopt.FlagLong(&c.Option_List_sha1sum, "sha1sum", 0, "list the checksum stored for a file as per the output of sha1sum, note this does not exclude the use of other digest formats!")
+	//getopt.FlagLong(&c.Option_List_md5sum,   "md5sum", 0, "list the checksum stored for a file as per the output of md5sum, note this does not exclude the use of other digest formats!")
 
 	getopt.FlagLong(&c.Option_AllDigests, "all", 'x', "include all digests, not just the default digest. Only applies to --delete and --list options")
 
@@ -97,11 +99,13 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.FlagLong(&c.Verbose, "verbose", 'v', "print more verbose messages")
 
-	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available")
+	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available)")
 
 	getopt.FlagLong(&c.Option_ShortPaths, "short-paths", 's', "show only file name when showing file names, useful for generating sha1sum files")
 
 	getopt.FlagLong(&c.Option_Recursive, "recursive", 'r', "recurse into sub-directories")
+
+	getopt.FlagLong(&c.DisplayFormat, "display-format", 0, "set the output display format (sha1sum, md5sum). Note: this only sets the output format, any digest type can be displayed!")
 
 	getopt.Parse()
 
@@ -136,6 +140,11 @@ func (c *Config) ParseCmdlineOpt() {
 	if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
 		fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
 		os.Exit(2)
+	}
+
+	if c.DisplayFormat != "" && c.DisplayFormat != "sha1sum" && c.DisplayFormat != "md5sum" {
+		fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
+		os.Exit(3)
 	}
 
 	if c.Action_Check {
