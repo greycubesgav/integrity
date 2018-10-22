@@ -182,42 +182,53 @@ Options:`)
 	fmt.Println(`
 Usage Examples:
 
-  Check a files integrity checksum
-   integrity myfile.jpg
+  Checking a file's integrity checksum
+    integrity myfile.jpg
+    > myfile.jpg : sha1 : PASSED
 
-  Adding integrity data to a file
+  Adding integrity data to a file, skip if the file already has integrity dat
     integrity -a data_01.dat
+    > data01.dat : sha1 : added
 
-  Add integrity data to a file, skip if the file already has integrity data
-    integrity -a -s data_01.dat
+  Adding integrity data to a file, forcing a recalcuation if file already has integrity data
+    integrity -a -f data01.dat
+    > data01.dat : sha1 : added
 
-  Checking the integrity of a file with integrity data
+  Checking the integrity of a file
     integrity -c data_01.dat
+    > data01.dat : sha1 : PASSED
+    > data01.dat : FAILED # Todo: Fix output to include sha1
 
   Checking the integrity of a file with integrity data verbosely
-    integrity -c -v data_01.dat
+    integrity -v  -c  data01.dat
+    > data01.dat : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909 : PASSED
 
-  Listing integrity data as shasum command output, with full filepath
-    integrity -l data_01.dat
+    integrity -c -v data_01_corrupt.dat
+    > Error checking checksum; data_01_corrupt.dat : Calculated checksum and filesystem read checksum differ!
+      ├── xatr; [3fc98aa337e328816416e179afc863a75ffb330a]
+      └── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392]
 
-  Listing integrity data as shasum command output, with only filename
-    integrity -m data_01.dat
+  Listing integrity data
+    integrity -l data_01.dat # Todo: add digest to normal output
+    > data01.dat : 65bb1872af65ed02db42f603c786f5ec7d392909
 
-  Using shasum to check the integrity of a list of files (osx)
-    integrity -l data_01.dat | shasum -c
+  Listing integrity data verbosely
+    integrity -l -v data_01.dat
+    > data01.dat : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909
+
+  Listing integrity data as shasum command output
+    integrity -l --display-format=sha1sum  data01.dat
+    > 65bb1872af65ed02db42f603c786f5ec7d392909 *data01.dat
+
+  Listing integrity data as md5sum command output
+    integrity -l --display-format=md5sum  data01.dat #ToDo block display of non-md5sum digests
+    > 65bb1872af65ed02db42f603c786f5ec7d392909  data01.dat
 
   Recursively add integrity data to all files within a directory structure
-	linux:
-    find directory -type f -print0  | xargs -0 integrity -a
+    integrity -a -r ~/data/
 
-    osx:
-    find directory -type f -not -name '.DS_Store' -print0 | xargs -0 integrity -a
-
-  Recursively list the checksums as shasum output (osx)
-    find directory -type f -print0  | xargs -0 integrity -l
-
-  Locate duplicate files within a directory structure (osx)
-    integrity_dupes directory
+  Recursively list the checksums as shasum output
+    integrity -l -r ~/data/
 
 Further Information:
 
@@ -236,8 +247,8 @@ Further Information:
 
 Design Choices:
 
-    * By default this util is meant to be quite quiet. i.e. when adding trying to add a checksum to a file with one
-	  stored already, the app will simply skip over the file and continue. This is because the util is meant to be ran
+    * By default this utility is designed to quiet on output. i.e. when adding trying to add a checksum to a file with one
+	  stored already, the app will simply skip over the file and continue. This is because the utility is meant to be run
 	  over large numbers of data files which may or may not already have checksum data so output is kept to a minimum.
 
 	  For example:
