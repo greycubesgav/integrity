@@ -210,9 +210,13 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 		}
 	} else {
 		if config.DisplayFormat == "sha1sum" {
-			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
-		} else if config.DisplayFormat == "md5sum" {
-			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
+			if strings.HasPrefix(currentFile.digest_name, "sha") {
+				fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
+			}
+	    } else if config.DisplayFormat == "md5sum" {
+			if strings.HasPrefix(currentFile.digest_name, "md5") {
+				fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
+			}
 		} else if config.Verbose || config.Option_AllDigests {
 			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
 		} else {
