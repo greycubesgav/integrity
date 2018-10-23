@@ -164,13 +164,13 @@ func printHelp() {
 	fmt.Printf("integrity version %s\n", integrity_version)
 	fmt.Printf("Web site: %s\n", integrity_website)
 	fmt.Printf(`
-integrity is a file checksum and verification tool capable of calculating
+integrity is a file integrity tool, capable of calculating
 a number of different types of checksum and storing the result in the file's
 extended attributes. This allows the file to be moved between directories
-or copied to another machine while maintaining the checksum data
+or copied to another machine while maintaining the checksum data.
 
 This checksum data can be used to verify the integrity of the file and ensure
-it's contents are still valid.
+it's contents have not been changed or become corrupted.
 
 The checksum data is also useful for efficiently finding duplicate files in
 different directories'
@@ -221,13 +221,18 @@ Usage Examples:
     > 65bb1872af65ed02db42f603c786f5ec7d392909 *data01.dat
 
   Listing integrity data as md5sum command output
-    integrity -l --display-format=md5sum  data01.dat #ToDo block display of non-md5sum digests
+    integrity -l --display-format=md5sum  data01.dat
     > 65bb1872af65ed02db42f603c786f5ec7d392909  data01.dat
+
+  List all checksums stored, not just the default/digest selected
+    integrity -l -x data_01.dat
+    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e
+      data_01.dat : sha1 : ffccc1f78abcc5ac8b8434a5c4eeab75e64918ca
 
   Recursively add integrity data to all files within a directory structure
     integrity -a -r ~/data/
 
-  Recursively list the checksums as shasum output
+  Recursively list the checksum as shasum output
     integrity -l -r ~/data/
 
 Further Information:
