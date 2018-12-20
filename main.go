@@ -30,6 +30,8 @@ type integrity_fileCard struct {
 	digest_name     string
 }
 
+// ToDo Add option to skip mac files http://www.westwind.com/reference/OS-X/invisibles.html
+
 
 var config *Config = NewConfig()
 
