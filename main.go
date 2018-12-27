@@ -43,7 +43,7 @@ func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
 	if _, err = xattr.Get(currentFile.fullpath, xattribute_name + config.DigestName); err != nil {
 		var errorString string
 		errorString = err.Error();
-		if strings.Contains(errorString, "attribute not found") {
+		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 			// We got an error with attribute not found so simply return false and no error
 			return false, nil
 		} else {
