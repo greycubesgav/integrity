@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/xattr"
 	"io"
 	"encoding/hex"
+	"runtime"
 	"strings"
 	"crypto"
 	"hash"
@@ -57,13 +58,43 @@ func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
 func integ_swapXattrib (currentFile *integrity_fileCard) (error) {
 	var err error
 	var data []byte
-	if data, err = xattr.Get(currentFile.fullpath, "integ.sha1" ); err != nil {
+	var old_attribute_name string
+	var new_attribute_name string
+	if  runtime.GOOS == "linux" {
+		old_attribute_name = "user.integ.sha1"
+	} else {
+		old_attribute_name = "integ.sha1"
+	}
+	if data, err = xattr.Get(currentFile.fullpath, old_attribute_name ); err != nil {
+		var errorString string
+		errorString = err.Error();
+		if strings.Contains(errorString, "attribute not found") {
+			// We got an error with attribute not found so try another variation on the attribute name
+			old_attribute_name = "integrity.sha1"
+
+			// Output info
+			//fmt.Fprintf(os.Stderr, "%s checking [%s]\n", currentFile.fullpath, old_attribute_name)
+
+			if data, err = xattr.Get(currentFile.fullpath, old_attribute_name); err != nil {
+				// We got an error so return it
+				return err
+			}
+
+			// Output data read
+			//fmt.Fprintf(os.Stderr, "%s read [%s]\n", currentFile.fullpath, data)
+
+		} else {
+			// We got a different error so return the error
+			return err
+		}
+	}
+    new_attribute_name = xattribute_name + config.DigestName;
+	//fmt.Fprintf(os.Stderr, "xattr.Set [%s] [%s] [%s]\n", currentFile.fullpath, new_attribute_name, data)
+	if err = xattr.Set(currentFile.fullpath, new_attribute_name, data); err != nil {
 		return err
 	}
-	if err = xattr.Set(currentFile.fullpath, xattribute_name + config.DigestName, data); err != nil {
-		return err
-	}
-	if err = xattr.Remove(currentFile.fullpath, "integ.sha1"); err != nil {
+	//fmt.Fprintf(os.Stderr, "xattr.Remove [%s] [%s] [%s]\n", currentFile.fullpath, old_attribute_name)
+	if err = xattr.Remove(currentFile.fullpath, old_attribute_name); err != nil {
 		return err
 	}
 	return nil
@@ -358,11 +389,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					fmt.Printf("%s : FAILED\n", fileDisplayPath)
 				}
 			} else {
-				if config.Verbose {
-					fmt.Printf("%s : %s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-				} else {
-					fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name)
-				}
+				fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, xattribute_name + config.DigestName)
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)

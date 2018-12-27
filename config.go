@@ -7,7 +7,7 @@ import (
 	"github.com/pborman/getopt/v2"
 )
 
-const integrity_version = "0.1.10"
+const integrity_version = "0.1.11"
 const integrity_website = "https://www.example.com"
 
 var digestTypes = map[string]crypto.Hash {
