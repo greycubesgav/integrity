@@ -336,9 +336,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					}
 					return nil
 				} else if haveDigestStored {
-					if config.Verbose {
-						fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
-					}
+					fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
 					return nil
 				}
 			}
