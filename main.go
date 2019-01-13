@@ -32,15 +32,16 @@ type integrity_fileCard struct {
 }
 
 // ToDo Add option to skip mac files http://www.westwind.com/reference/OS-X/invisibles.html
+// ToDo change errors to summarise at end like rsync - some errors occured
+// ToDo check all errors goto stderr all normal messages go to stdout
 
 
 var config *Config = NewConfig()
 
-const xattribute_name = "user.integrity."
 
 func integ_testChecksumStored (currentFile *integrity_fileCard) (bool, error) {
 	var err error
-	if _, err = xattr.Get(currentFile.fullpath, xattribute_name + config.DigestName); err != nil {
+	if _, err = xattr.Get(currentFile.fullpath, config.xattribute_fullname ); err != nil {
 		var errorString string
 		errorString = err.Error();
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
@@ -76,8 +77,11 @@ func integ_swapXattrib (currentFile *integrity_fileCard) (error) {
 			//fmt.Fprintf(os.Stderr, "%s checking [%s]\n", currentFile.fullpath, old_attribute_name)
 
 			if data, err = xattr.Get(currentFile.fullpath, old_attribute_name); err != nil {
-				// We got an error so return it
-				return err
+				old_attribute_name = "user.integrity.sha1"
+				if data, err = xattr.Get(currentFile.fullpath, old_attribute_name); err != nil {
+					// none of our attempts to find an old record succeeded
+					return err
+				}
 			}
 
 			// Output data read
@@ -88,7 +92,7 @@ func integ_swapXattrib (currentFile *integrity_fileCard) (error) {
 			return err
 		}
 	}
-    new_attribute_name = xattribute_name + config.DigestName;
+    new_attribute_name = config.xattribute_fullname;
 	//fmt.Fprintf(os.Stderr, "xattr.Set [%s] [%s] [%s]\n", currentFile.fullpath, new_attribute_name, data)
 	if err = xattr.Set(currentFile.fullpath, new_attribute_name, data); err != nil {
 		return err
@@ -103,7 +107,7 @@ func integ_swapXattrib (currentFile *integrity_fileCard) (error) {
 func integ_getChecksumRaw (path string, digest_name string) (string, error) {
 	var err error
 	var data []byte
-	if data, err = xattr.Get(path, xattribute_name + digest_name ); err != nil {
+	if data, err = xattr.Get(path, config.xattribute_fullname ); err != nil {
 		return "", err
 	}
 	return string(data[:len(data)]), nil
@@ -128,7 +132,7 @@ func integ_getChecksum (currentFile *integrity_fileCard) (error) {
 // this allows the outer code to determine if we actually removed an attribute or not
 func integ_removeChecksum (currentFile *integrity_fileCard) (bool, error) {
 	var err error
-	if err = xattr.Remove(currentFile.fullpath, xattribute_name + config.DigestName); err != nil {
+	if err = xattr.Remove(currentFile.fullpath, config.xattribute_fullname); err != nil {
 		var errorString string
 		errorString = err.Error();
 		if strings.Contains(errorString, "attribute not found") {
@@ -183,7 +187,7 @@ func integ_writeChecksum (currentFile *integrity_fileCard) (error) {
 		return err
 	}
 	checksumBytes := []byte(currentFile.checksum)
-	if err = xattr.Set(currentFile.fullpath, xattribute_name + config.DigestName, checksumBytes); err != nil {
+	if err = xattr.Set(currentFile.fullpath, config.xattribute_fullname, checksumBytes); err != nil {
 		return err
 	}
 	return nil
@@ -387,7 +391,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					fmt.Printf("%s : FAILED\n", fileDisplayPath)
 				}
 			} else {
-				fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, xattribute_name + config.DigestName)
+				fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, config.xattribute_fullname)
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)

@@ -5,10 +5,12 @@ import (
 	"os"
 	"crypto"
 	"github.com/pborman/getopt/v2"
+	"runtime"
 )
 
-const integrity_version = "0.1.11"
+const integrity_version = "0.1.12"
 const integrity_website = "https://www.example.com"
+const xattribute_name = "integrity"
 
 var digestTypes = map[string]crypto.Hash {
 	"md4" : crypto.MD4,
@@ -53,6 +55,7 @@ type Config struct {
 	Option_Recursive		bool
 	Option_AllDigests		bool
 	Option_DefaultDigest	bool
+	xattribute_fullname     string
 }
 
 func NewConfig() *Config {
@@ -76,6 +79,7 @@ func NewConfig() *Config {
 		DigestName:				"",
 		DisplayFormat:          "",
 		Action:					"check",
+		xattribute_fullname:    "",
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -157,6 +161,13 @@ func (c *Config) ParseCmdlineOpt() {
 		c.Action = "list"
 	} else if c.Action_Transform {
 		c.Action = "transform"
+	}
+
+	// Create the full xattribute name from the os, const and digest
+	if  runtime.GOOS == "linux" {
+		c.xattribute_fullname = fmt.Sprintf("user.%s.%s",xattribute_name, c.DigestName)
+	} else {
+		c.xattribute_fullname = fmt.Sprintf("%s.%s",xattribute_name, c.DigestName)
 	}
 }
 
