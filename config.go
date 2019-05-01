@@ -1,85 +1,84 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"crypto"
+	"fmt"
 	"github.com/pborman/getopt/v2"
+	"os"
 	"runtime"
 )
 
-const integrity_version = "0.1.12"
+const integrity_version = "0.1.13"
 const integrity_website = "https://www.example.com"
 const xattribute_name = "integrity"
 
-var digestTypes = map[string]crypto.Hash {
-	"md4" : crypto.MD4,
-	"md5" : crypto.MD5,
-	"sha1" : crypto.SHA1,
-	"sha224" : crypto.SHA224,
-	"sha256" : crypto.SHA256,
-	"sha384" : crypto.SHA384,
-	"sha512" : crypto.SHA512,
-	"md5sha1" : crypto.MD5SHA1,
-	"ripemd160" : crypto.RIPEMD160,
-	"sha3_224" : crypto.SHA3_224,
-	"sha3_256" : crypto.SHA3_256,
-	"sha3_384" : crypto.SHA3_384,
-	"sha3_512" : crypto.SHA3_512,
-	"sha512_224" : crypto.SHA512_224,
-	"sha512_256" : crypto.SHA512_256,
-	"blake2s_256" : crypto.BLAKE2s_256,
-	"blake2b_256" : crypto.BLAKE2b_256,
-	"blake2b_384" : crypto.BLAKE2b_384,
-	"blake2b_512" : crypto.BLAKE2b_512,
+var digestTypes = map[string]crypto.Hash{
+	"md4":         crypto.MD4,
+	"md5":         crypto.MD5,
+	"sha1":        crypto.SHA1,
+	"sha224":      crypto.SHA224,
+	"sha256":      crypto.SHA256,
+	"sha384":      crypto.SHA384,
+	"sha512":      crypto.SHA512,
+	"md5sha1":     crypto.MD5SHA1,
+	"ripemd160":   crypto.RIPEMD160,
+	"sha3_224":    crypto.SHA3_224,
+	"sha3_256":    crypto.SHA3_256,
+	"sha3_384":    crypto.SHA3_384,
+	"sha3_512":    crypto.SHA3_512,
+	"sha512_224":  crypto.SHA512_224,
+	"sha512_256":  crypto.SHA512_256,
+	"blake2s_256": crypto.BLAKE2s_256,
+	"blake2b_256": crypto.BLAKE2b_256,
+	"blake2b_384": crypto.BLAKE2b_384,
+	"blake2b_512": crypto.BLAKE2b_512,
 }
 
-
 type Config struct {
-	ShowHelp				bool
+	ShowHelp bool
 	//TestChecksum			bool
-	Verbose					bool
-	DigestHash				crypto.Hash
-	DigestName				string
-	Action					string
-	DisplayFormat           string
-	Action_Add				bool
-	Action_Delete			bool
-	Action_List				bool
-	Action_Transform		bool
+	Verbose          bool
+	DigestHash       crypto.Hash
+	DigestName       string
+	Action           string
+	DisplayFormat    string
+	Action_Add       bool
+	Action_Delete    bool
+	Action_List      bool
+	Action_Transform bool
 	//Option_List_sha1sum		bool
 	//Option_List_md5sum		bool
-	Action_Check			bool
-	Option_Force			bool
-	Option_ShortPaths		bool
-	Option_Recursive		bool
-	Option_AllDigests		bool
-	Option_DefaultDigest	bool
-	xattribute_fullname     string
+	Action_Check         bool
+	Option_Force         bool
+	Option_ShortPaths    bool
+	Option_Recursive     bool
+	Option_AllDigests    bool
+	Option_DefaultDigest bool
+	xattribute_fullname  string
 }
 
 func NewConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:				false,
-		Action_Check:			false,
-		Action_Add:				false,
-		Action_Delete:			false,
-		Action_List:			false,
-		Action_Transform:		false,
+		ShowHelp:         false,
+		Action_Check:     false,
+		Action_Add:       false,
+		Action_Delete:    false,
+		Action_List:      false,
+		Action_Transform: false,
 		//Option_List_sha1sum:	false,
 		//Option_List_md5sum:		false,
-		Option_Force:			false,
-		Option_ShortPaths:		false,
-		Option_Recursive:		false,
-		Option_AllDigests:		false,
-		Option_DefaultDigest:	false,
+		Option_Force:         false,
+		Option_ShortPaths:    false,
+		Option_Recursive:     false,
+		Option_AllDigests:    false,
+		Option_DefaultDigest: false,
 		//TestChecksum:			false,
-		Verbose:				false,
-		DigestHash:				crypto.SHA1,
-		DigestName:				"",
-		DisplayFormat:          "",
-		Action:					"check",
-		xattribute_fullname:    "",
+		Verbose:             false,
+		DigestHash:          crypto.SHA1,
+		DigestName:          "",
+		DisplayFormat:       "",
+		Action:              "check",
+		xattribute_fullname: "",
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -164,10 +163,10 @@ func (c *Config) ParseCmdlineOpt() {
 	}
 
 	// Create the full xattribute name from the os, const and digest
-	if  runtime.GOOS == "linux" {
-		c.xattribute_fullname = fmt.Sprintf("user.%s.%s",xattribute_name, c.DigestName)
+	if runtime.GOOS == "linux" {
+		c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
 	} else {
-		c.xattribute_fullname = fmt.Sprintf("%s.%s",xattribute_name, c.DigestName)
+		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
 	}
 }
 
