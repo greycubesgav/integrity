@@ -86,7 +86,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 			found = true
 
 			if config.Verbose {
-				fmt.Printf("%s : Found old attribute: %s\n", currentFile.fullpath, oldAttribute)
+				fmt.Printf("%s : Found old attribute [%s] : Setting new attribute: [%s]\n", currentFile.fullpath, oldAttribute, config.xattribute_fullname)
 			}
 
 			if err = xattr.Set(currentFile.fullpath, config.xattribute_fullname, data); err != nil {

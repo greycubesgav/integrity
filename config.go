@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-const integrity_version = "0.1.13"
+const integrity_version = "0.1.14"
 const integrity_website = "https://www.example.com"
 const xattribute_name = "integrity"
 
@@ -36,6 +36,7 @@ var digestTypes = map[string]crypto.Hash{
 
 type Config struct {
 	ShowHelp bool
+	ShowVersion bool
 	//TestChecksum			bool
 	Verbose          bool
 	DigestHash       crypto.Hash
@@ -60,6 +61,7 @@ type Config struct {
 func NewConfig() *Config {
 	var c *Config = &Config{
 		ShowHelp:         false,
+		ShowVersion:	  false,
 		Action_Check:     false,
 		Action_Add:       false,
 		Action_Delete:    false,
@@ -87,6 +89,9 @@ func NewConfig() *Config {
 func (c *Config) ParseCmdlineOpt() {
 
 	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
+
+	getopt.FlagLong(&c.ShowVersion, "version", 0, "show version")
+
 	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes")
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
 	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
@@ -112,18 +117,14 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.Parse()
 
+
 	if c.ShowHelp {
 		printHelp()
 		os.Exit(0)
 	}
 
-	if getopt.NArgs() == 0 {
-		fmt.Printf("integrity version %s\n", integrity_version)
-		fmt.Printf("Web site: %s\n", integrity_website)
-		getopt.Usage()
-		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
-		os.Exit(1)
-	}
+
+
 
 	// If we haven't been passed a digest name
 	// Try and get it from the environment
@@ -145,6 +146,14 @@ func (c *Config) ParseCmdlineOpt() {
 		os.Exit(2)
 	}
 
+	// Create the full xattribute name from the os, const and digest
+	if runtime.GOOS == "linux" {
+		c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
+	} else {
+		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
+	}
+
+
 	if c.DisplayFormat != "" && c.DisplayFormat != "sha1sum" && c.DisplayFormat != "md5sum" {
 		fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
 		os.Exit(3)
@@ -162,12 +171,21 @@ func (c *Config) ParseCmdlineOpt() {
 		c.Action = "transform"
 	}
 
-	// Create the full xattribute name from the os, const and digest
-	if runtime.GOOS == "linux" {
-		c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
-	} else {
-		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
+	// Show the version of the app and exit
+	if c.ShowVersion {
+		fmt.Printf("integrity version %s\n", integrity_version)
+		fmt.Printf("integrity attribute %s\n", c.xattribute_fullname)
+		os.Exit(0)
 	}
+
+	if getopt.NArgs() == 0 {
+		fmt.Printf("integrity version %s\n", integrity_version)
+		fmt.Printf("Web site: %s\n", integrity_website)
+		getopt.Usage()
+		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
+		os.Exit(1)
+	}
+
 }
 
 func printHelp() {
