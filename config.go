@@ -173,8 +173,9 @@ func (c *Config) ParseCmdlineOpt() {
 
 	// Show the version of the app and exit
 	if c.ShowVersion {
-		fmt.Printf("integrity version %s\n", integrity_version)
-		fmt.Printf("integrity attribute %s\n", c.xattribute_fullname)
+		fmt.Printf("integrity version: %s\n", integrity_version)
+		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
+		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
 		os.Exit(0)
 	}
 
