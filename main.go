@@ -238,7 +238,7 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 		errorString = err.Error()
 		if strings.Contains(errorString, "attribute not found") {
 			if config.Verbose {
-				fmt.Printf("%s : %s : [no checksum stored]\n", fileDisplayPath, config.DigestName)
+				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
 			}
 		} else {
 			fmt.Printf("%s : Error : %s\n", fileDisplayPath, err.Error())
