@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-const integrity_version = "0.1.14"
+const integrity_version = "0.1.15"
 const integrity_website = "https://www.example.com"
 const xattribute_name = "integrity"
 
@@ -96,7 +96,7 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
 	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
 	getopt.FlagLong(&c.Action_List, "list", 'l', "list the checksum stored for a file")
-	getopt.FlagLong(&c.Action_Transform, "transform", 't', "transform an old extended attribute value name to the current format")
+	getopt.FlagLong(&c.Action_Transform, "fix-old", 0, "fix an old extended attribute value name to the current format")
 
 	//getopt.FlagLong(&c.Option_List_sha1sum, "sha1sum", 0, "list the checksum stored for a file as per the output of sha1sum, note this does not exclude the use of other digest formats!")
 	//getopt.FlagLong(&c.Option_List_md5sum,   "md5sum", 0, "list the checksum stored for a file as per the output of md5sum, note this does not exclude the use of other digest formats!")
