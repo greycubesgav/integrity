@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const integrity_version = "0.1.15"
+const integrity_version = "0.1.16"
 const integrity_website = "https://www.example.com"
 const xattribute_name = "integrity"
 
