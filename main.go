@@ -17,7 +17,6 @@ import (
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -155,15 +154,25 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	}
 	defer fileHandle.Close()
 
-	var hashObj crypto.Hash = config.DigestHash
-	if !hashObj.Available() {
-		return fmt.Errorf("integ_generateChecksum: hash object [%s] not compiled in!", hashObj)
+	config.logObject.Debugf("integ_generateChecksum config.DigestName:%s\n", config.DigestName)
+
+	if (config.DigestName == "oshash") {
+		currentFile.checksum,err = OSHashFromFilePath(currentFile.fullpath)
+		if err != nil {
+			return err
+		}
+	} else {
+		var hashObj crypto.Hash = config.DigestHash
+		if !hashObj.Available() {
+			return fmt.Errorf("integ_generateChecksum: hash object [%s] not compiled in!", hashObj)
+		}
+		var hashFunc hash.Hash = hashObj.New()
+		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
+			return err
+		}
+		currentFile.checksum = hex.EncodeToString(hashFunc.Sum(nil))
 	}
-	var hashFunc hash.Hash = hashObj.New()
-	if _, err := io.Copy(hashFunc, fileHandle); err != nil {
-		return err
-	}
-	currentFile.checksum = hex.EncodeToString(hashFunc.Sum(nil))
+	config.logObject.Debugf("integ_generateChecksum currentFile.checksum:%s\n", currentFile.checksum)
 	return nil
 }
 
@@ -405,6 +414,15 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 	return nil
 }
 
+func integrityLogf(fmt_ string, args ...interface{}) {
+	programCounter, file, line, _ := runtime.Caller(1)
+	fn := runtime.FuncForPC(programCounter)
+	prefix := fmt.Sprintf("[%s:%s %d] %s", file, fn.Name(), line, fmt_)
+	fmt.Printf(prefix, args...)
+	//fmt.Println()
+}
+
+
 func main() {
 
 	for _, path := range getopt.Args() {
@@ -421,7 +439,7 @@ func main() {
 				// Walk the directory structure
 				err := filepath.Walk(path, handle_path)
 				if err != nil {
-					log.Fatal(err)
+					config.logObject.Fatal(err)
 				}
 			} else {
 				if config.Verbose {

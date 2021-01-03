@@ -6,6 +6,7 @@ import (
 	"github.com/pborman/getopt/v2"
 	"os"
 	"runtime"
+	"github.com/sirupsen/logrus"
 )
 
 const integrity_version = "0.1.15"
@@ -35,52 +36,56 @@ var digestTypes = map[string]crypto.Hash{
 }
 
 type Config struct {
-	ShowHelp bool
-	ShowVersion bool
-	//TestChecksum			bool
-	Verbose          bool
-	DigestHash       crypto.Hash
-	DigestName       string
-	Action           string
-	DisplayFormat    string
-	Action_Add       bool
-	Action_Delete    bool
-	Action_List      bool
-	Action_Transform bool
+	ShowHelp 					bool
+	ShowVersion 				bool
+	//TestChecksum				bool
+	Verbose          			bool
+	DigestHash       			crypto.Hash
+	DigestName       			string
+	Action           			string
+	DisplayFormat    			string
+	Action_Add       			bool
+	Action_Delete    			bool
+	Action_List      			bool
+	Action_Transform 			bool
 	//Option_List_sha1sum		bool
 	//Option_List_md5sum		bool
-	Action_Check         bool
-	Option_Force         bool
-	Option_ShortPaths    bool
-	Option_Recursive     bool
-	Option_AllDigests    bool
-	Option_DefaultDigest bool
-	xattribute_fullname  string
+	Action_Check         		bool
+	Option_Force         		bool
+	Option_ShortPaths    		bool
+	Option_Recursive     		bool
+	Option_AllDigests    		bool
+	Option_DefaultDigest 		bool
+	xattribute_fullname  		string
+	logLevelName                string
+	logObject                   *logrus.Logger
 }
 
 func NewConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:         false,
-		ShowVersion:	  false,
-		Action_Check:     false,
-		Action_Add:       false,
-		Action_Delete:    false,
-		Action_List:      false,
-		Action_Transform: false,
+		ShowHelp:         			false,
+		ShowVersion:	  			false,
+		Action_Check:     			false,
+		Action_Add:       			false,
+		Action_Delete:    			false,
+		Action_List:      			false,
+		Action_Transform: 			false,
 		//Option_List_sha1sum:	false,
 		//Option_List_md5sum:		false,
-		Option_Force:         false,
-		Option_ShortPaths:    false,
-		Option_Recursive:     false,
-		Option_AllDigests:    false,
-		Option_DefaultDigest: false,
+		Option_Force:         		false,
+		Option_ShortPaths:    		false,
+		Option_Recursive:    		false,
+		Option_AllDigests:    		false,
+		Option_DefaultDigest: 		false,
 		//TestChecksum:			false,
-		Verbose:             false,
-		DigestHash:          crypto.SHA1,
-		DigestName:          "",
-		DisplayFormat:       "",
-		Action:              "check",
-		xattribute_fullname: "",
+		Verbose:             		false,
+		DigestHash:          		crypto.SHA1,
+		DigestName:          		"sha1",
+		DisplayFormat:       		"",
+		Action:              		"check",
+		xattribute_fullname: 		"",
+		logLevelName:               "info",
+		logObject:                  logrus.New(),
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -105,7 +110,8 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.FlagLong(&c.Option_Force, "force", 'f', "force the calculation and writing of a checksum even if one already exists (default behaviour is to skip files with checksums already stored)")
 
-	getopt.FlagLong(&c.Verbose, "verbose", 'v', "print more verbose messages")
+	getopt.FlagLong(&c.Verbose, "verbose", 'v', "set verbose output.")
+	getopt.FlagLong(&c.logLevelName, "loglevel", 0, "set the logging level. One of: panic, fatal, error, warn, info, debug, trace.")
 
 	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available)")
 
@@ -118,13 +124,29 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.Parse()
 
 
+	if c.logLevelName == "trace" {
+		c.logObject.SetLevel(logrus.TraceLevel)
+	} else if  c.logLevelName == "debug" {
+		c.logObject.SetLevel(logrus.DebugLevel)
+	} else if  c.logLevelName == "info" {
+		c.logObject.SetLevel(logrus.InfoLevel)
+	} else if  c.logLevelName == "warn" {
+		c.logObject.SetLevel(logrus.WarnLevel)
+	} else if  c.logLevelName == "fatal" {
+		c.logObject.SetLevel(logrus.FatalLevel)
+	} else if  c.logLevelName == "panic" {
+		c.logObject.SetLevel(logrus.PanicLevel)
+	} else {
+		c.logObject.SetLevel(logrus.InfoLevel)
+	}
+
+	c.logObject.Debugf("LogObjectlevel : [%s]\n", c.logObject.Level)
+
+
 	if c.ShowHelp {
 		printHelp()
 		os.Exit(0)
 	}
-
-
-
 
 	// If we haven't been passed a digest name
 	// Try and get it from the environment
@@ -141,10 +163,15 @@ func (c *Config) ParseCmdlineOpt() {
 		}
 	}
 
-	if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
-		fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
-		os.Exit(2)
+	if c.DigestName != "oshash" {
+		if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
+			fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
+			c.logObject.Fatalf("Error : unknown hash type '%s'\n", c.DigestName)
+			os.Exit(2)
+		}
 	}
+
+	c.logObject.Debugf("DigestName: '%s'\n", c.DigestName)
 
 	// Create the full xattribute name from the os, const and digest
 	if runtime.GOOS == "linux" {
@@ -153,6 +180,7 @@ func (c *Config) ParseCmdlineOpt() {
 		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
 	}
 
+	c.logObject.Debugf("c.xattribute_fullname: '%s'\n", c.xattribute_fullname)
 
 	if c.DisplayFormat != "" && c.DisplayFormat != "sha1sum" && c.DisplayFormat != "md5sum" {
 		fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
@@ -331,6 +359,7 @@ Supported Checksum Digest Algorithms:
     * blake2b_256
     * blake2b_384
     * blake2b_512
+    * oshash : hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
   `)
 
 }
