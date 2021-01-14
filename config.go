@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/pborman/getopt/v2"
 	"os"
+	"path/filepath"
 	"runtime"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 const integrity_version = "0.1.16"
@@ -92,6 +94,14 @@ func NewConfig() *Config {
 }
 
 func (c *Config) ParseCmdlineOpt() {
+	// Get the digest from the name of the command
+	// e.g. fi
+
+	cmdName := filepath.Base(os.Args[0])
+	cmdHash := strings.Split(cmdName, ".")
+	if len(cmdHash) > 1 {
+		c.DigestName = cmdHash[1]
+	}
 
 	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
 
