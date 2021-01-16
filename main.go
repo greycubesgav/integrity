@@ -156,8 +156,13 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 
 	config.logObject.Debugf("integ_generateChecksum config.DigestName:%s\n", config.DigestName)
 
-	if (config.DigestName == "oshash") {
-		currentFile.checksum,err = OSHashFromFilePath(currentFile.fullpath)
+	if config.DigestName == "oshash" {
+		currentFile.checksum, err = OSHashFromFilePath(currentFile.fullpath)
+		if err != nil {
+			return err
+		}
+	} else if config.DigestName == "phash" {
+		currentFile.checksum, err = integrityPhashFromFile(currentFile.fullpath)
 		if err != nil {
 			return err
 		}
@@ -421,7 +426,6 @@ func integrityLogf(fmt_ string, args ...interface{}) {
 	fmt.Printf(prefix, args...)
 	//fmt.Println()
 }
-
 
 func main() {
 

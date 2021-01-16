@@ -4,10 +4,10 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/pborman/getopt/v2"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
-	"github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -38,56 +38,56 @@ var digestTypes = map[string]crypto.Hash{
 }
 
 type Config struct {
-	ShowHelp 					bool
-	ShowVersion 				bool
+	ShowHelp    bool
+	ShowVersion bool
 	//TestChecksum				bool
-	Verbose          			bool
-	DigestHash       			crypto.Hash
-	DigestName       			string
-	Action           			string
-	DisplayFormat    			string
-	Action_Add       			bool
-	Action_Delete    			bool
-	Action_List      			bool
-	Action_Transform 			bool
+	Verbose          bool
+	DigestHash       crypto.Hash
+	DigestName       string
+	Action           string
+	DisplayFormat    string
+	Action_Add       bool
+	Action_Delete    bool
+	Action_List      bool
+	Action_Transform bool
 	//Option_List_sha1sum		bool
 	//Option_List_md5sum		bool
-	Action_Check         		bool
-	Option_Force         		bool
-	Option_ShortPaths    		bool
-	Option_Recursive     		bool
-	Option_AllDigests    		bool
-	Option_DefaultDigest 		bool
-	xattribute_fullname  		string
-	logLevelName                string
-	logObject                   *logrus.Logger
+	Action_Check         bool
+	Option_Force         bool
+	Option_ShortPaths    bool
+	Option_Recursive     bool
+	Option_AllDigests    bool
+	Option_DefaultDigest bool
+	xattribute_fullname  string
+	logLevelName         string
+	logObject            *logrus.Logger
 }
 
 func NewConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:         			false,
-		ShowVersion:	  			false,
-		Action_Check:     			false,
-		Action_Add:       			false,
-		Action_Delete:    			false,
-		Action_List:      			false,
-		Action_Transform: 			false,
+		ShowHelp:         false,
+		ShowVersion:      false,
+		Action_Check:     false,
+		Action_Add:       false,
+		Action_Delete:    false,
+		Action_List:      false,
+		Action_Transform: false,
 		//Option_List_sha1sum:	false,
 		//Option_List_md5sum:		false,
-		Option_Force:         		false,
-		Option_ShortPaths:    		false,
-		Option_Recursive:    		false,
-		Option_AllDigests:    		false,
-		Option_DefaultDigest: 		false,
+		Option_Force:         false,
+		Option_ShortPaths:    false,
+		Option_Recursive:     false,
+		Option_AllDigests:    false,
+		Option_DefaultDigest: false,
 		//TestChecksum:			false,
-		Verbose:             		false,
-		DigestHash:          		crypto.SHA1,
-		DigestName:          		"sha1",
-		DisplayFormat:       		"",
-		Action:              		"check",
-		xattribute_fullname: 		"",
-		logLevelName:               "info",
-		logObject:                  logrus.New(),
+		Verbose:             false,
+		DigestHash:          crypto.SHA1,
+		DigestName:          "sha1",
+		DisplayFormat:       "",
+		Action:              "check",
+		xattribute_fullname: "",
+		logLevelName:        "info",
+		logObject:           logrus.New(),
 	}
 	c.ParseCmdlineOpt()
 	return c
@@ -133,25 +133,23 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.Parse()
 
-
 	if c.logLevelName == "trace" {
 		c.logObject.SetLevel(logrus.TraceLevel)
-	} else if  c.logLevelName == "debug" {
+	} else if c.logLevelName == "debug" {
 		c.logObject.SetLevel(logrus.DebugLevel)
-	} else if  c.logLevelName == "info" {
+	} else if c.logLevelName == "info" {
 		c.logObject.SetLevel(logrus.InfoLevel)
-	} else if  c.logLevelName == "warn" {
+	} else if c.logLevelName == "warn" {
 		c.logObject.SetLevel(logrus.WarnLevel)
-	} else if  c.logLevelName == "fatal" {
+	} else if c.logLevelName == "fatal" {
 		c.logObject.SetLevel(logrus.FatalLevel)
-	} else if  c.logLevelName == "panic" {
+	} else if c.logLevelName == "panic" {
 		c.logObject.SetLevel(logrus.PanicLevel)
 	} else {
 		c.logObject.SetLevel(logrus.InfoLevel)
 	}
 
 	c.logObject.Debugf("LogObjectlevel : [%s]\n", c.logObject.Level)
-
 
 	if c.ShowHelp {
 		printHelp()
@@ -173,7 +171,7 @@ func (c *Config) ParseCmdlineOpt() {
 		}
 	}
 
-	if c.DigestName != "oshash" {
+	if c.DigestName != "oshash" && c.DigestName != "phash" {
 		if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
 			fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
 			c.logObject.Fatalf("Error : unknown hash type '%s'\n", c.DigestName)
@@ -370,6 +368,7 @@ Supported Checksum Digest Algorithms:
     * blake2b_384
     * blake2b_512
     * oshash : hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
+    * phash : perceptive image hash
   `)
 
 }
