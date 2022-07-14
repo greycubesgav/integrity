@@ -26,15 +26,6 @@
     * blake2b 384
     * blake2b 512
 
-## Installation
-
-OS X And Linux
-```
-  curl -o integrity.tar.gz http://integrity.github.com/releases/latest.tar.gz
-  tar zxg integrity.tar.gz
-  
-```
-
 ## Simple Usage examples
 
 ### Add checksum data to a file
