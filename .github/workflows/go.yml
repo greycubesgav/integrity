@@ -1,6 +1,7 @@
-name: Go
+name: Go Build And Test
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
   pull_request:
