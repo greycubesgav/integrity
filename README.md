@@ -1,3 +1,5 @@
+[![Go Build And Test](https://github.com/greycubesgav/integrity/actions/workflows/go.yml/badge.svg)](https://github.com/greycubesgav/integrity/actions/workflows/go.yml)
+
 # Integrity
 > Command line utility for storing, displaying and checking a file's checksum
 
