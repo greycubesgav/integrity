@@ -3,12 +3,13 @@ package main
 import (
 	"crypto"
 	"fmt"
-	"github.com/pborman/getopt/v2"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/pborman/getopt/v2"
+	"github.com/sirupsen/logrus"
 )
 
 const integrity_version = "0.1.16"
@@ -160,8 +161,7 @@ func (c *Config) ParseCmdlineOpt() {
 	// Try and get it from the environment
 	// If this doesn't work, set it to sha1
 	if c.DigestName == "" {
-		var envDigest string
-		envDigest = os.Getenv("I_DIGEST")
+		envDigest := os.Getenv("I_DIGEST")
 
 		if envDigest != "" {
 			c.DigestName = envDigest
