@@ -1,4 +1,8 @@
 # Compiled files
 integrity
-integrity_linux
-integrity_bsd
+bin/
+# Packages
+*.deb
+*.rpm
+*.apk
+*.txz
