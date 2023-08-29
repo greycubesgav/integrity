@@ -1,0 +1,10 @@
+# Compiled files
+integrity
+bin/
+# Packages
+*.deb
+*.rpm
+*.apk
+*.txz
+Dockerfile
+README.md
