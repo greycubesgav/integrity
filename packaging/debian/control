@@ -1,0 +1,17 @@
+Package: integrity
+Version: 0.1.0
+Maintainer: Gavin Brown <integrity@greycubes.net>
+Section: utils
+Priority: optional
+Installed-Size: 25MB
+Architecture: amd64
+Homepage: <homepage>
+Provides: integrity
+Conflicts: integrity
+Description: integrity is a tool for calculating, storing and verifying checksums for files.
+ A number of different types of checksum are supported with the result stored in the file's
+ extended attributes. This allows the file to be moved between directories
+ or copied to another machine while maintaining the checksum data along with the file.
+ .
+ Supported checksums include md4, md5, sha1, sha256, sha512, sha3_512, blake2b_512,
+ oshash and phash
