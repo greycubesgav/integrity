@@ -12,8 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const integrity_version = "0.1.16"
-const integrity_website = "https://www.example.com"
+const integrity_website = "https://github.com/greycubesgav/integrity"
 const xattribute_name = "integrity"
 
 var digestTypes = map[string]crypto.Hash{
@@ -41,6 +40,7 @@ var digestTypes = map[string]crypto.Hash{
 type Config struct {
 	ShowHelp    bool
 	ShowVersion bool
+	ShowInfo    bool
 	//TestChecksum				bool
 	Verbose          bool
 	DigestHash       crypto.Hash
@@ -68,6 +68,7 @@ func NewConfig() *Config {
 	var c *Config = &Config{
 		ShowHelp:         false,
 		ShowVersion:      false,
+		ShowInfo:      	  false,
 		Action_Check:     false,
 		Action_Add:       false,
 		Action_Delete:    false,
@@ -96,7 +97,7 @@ func NewConfig() *Config {
 
 func (c *Config) ParseCmdlineOpt() {
 	// Get the digest from the name of the command
-	// e.g. fi
+	// e.g. integrity.sha1, integrity.md5
 
 	cmdName := filepath.Base(os.Args[0])
 	cmdHash := strings.Split(cmdName, ".")
@@ -107,6 +108,7 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
 
 	getopt.FlagLong(&c.ShowVersion, "version", 0, "show version")
+	getopt.FlagLong(&c.ShowInfo, "info", 0, "show information")
 
 	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes")
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
@@ -209,6 +211,11 @@ func (c *Config) ParseCmdlineOpt() {
 
 	// Show the version of the app and exit
 	if c.ShowVersion {
+		fmt.Printf("%s\n", integrity_version)
+		os.Exit(0)
+	}
+
+	if c.ShowInfo {
 		fmt.Printf("integrity version: %s\n", integrity_version)
 		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
 		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
@@ -229,10 +236,10 @@ func printHelp() {
 	fmt.Printf("integrity version %s\n", integrity_version)
 	fmt.Printf("Web site: %s\n", integrity_website)
 	fmt.Printf(`
-integrity is a file integrity tool, capable of calculating
-a number of different types of checksum and storing the result in the file's
+integrity is a tool for calculating, storing and verifying checksums for files.
+A number of different types of checksum are supported with the result stored in the file's
 extended attributes. This allows the file to be moved between directories
-or copied to another machine while maintaining the checksum data.
+or copied to another machine while maintaining the checksum data along with the file.
 
 This checksum data can be used to verify the integrity of the file and ensure
 it's contents have not been changed or become corrupted.
