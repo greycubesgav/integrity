@@ -1,4 +1,4 @@
-module integrity
+module github.com/greycubesgav/integrity
 
 go 1.15
 
