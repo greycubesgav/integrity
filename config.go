@@ -14,6 +14,7 @@ import (
 
 const integrity_website = "https://github.com/greycubesgav/integrity"
 const xattribute_name = "integrity"
+const env_name_prefix = "INTEGRITY"
 
 var digestTypes = map[string]crypto.Hash{
 	"md4":         crypto.MD4,
@@ -110,7 +111,7 @@ func (c *Config) ParseCmdlineOpt() {
 	getopt.FlagLong(&c.ShowVersion, "version", 0, "show version")
 	getopt.FlagLong(&c.ShowInfo, "info", 0, "show information")
 
-	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes")
+	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes [default]")
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
 	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
 	getopt.FlagLong(&c.Action_List, "list", 'l', "list the checksum stored for a file")
@@ -132,7 +133,7 @@ func (c *Config) ParseCmdlineOpt() {
 
 	getopt.FlagLong(&c.Option_Recursive, "recursive", 'r', "recurse into sub-directories")
 
-	getopt.FlagLong(&c.DisplayFormat, "display-format", 0, "set the output display format (sha1sum, md5sum). Note: this only sets the output format, any digest type can be displayed!")
+	getopt.FlagLong(&c.DisplayFormat, "display-format", 0, "set the output display format (sha1sum, md5sum). Note: this only shows any checkfiles ")
 
 	getopt.Parse()
 
@@ -163,7 +164,7 @@ func (c *Config) ParseCmdlineOpt() {
 	// Try and get it from the environment
 	// If this doesn't work, set it to sha1
 	if c.DigestName == "" {
-		envDigest := os.Getenv("I_DIGEST")
+		envDigest := os.Getenv(env_name_prefix +"_DIGEST")
 
 		if envDigest != "" {
 			c.DigestName = envDigest
@@ -183,11 +184,16 @@ func (c *Config) ParseCmdlineOpt() {
 
 	c.logObject.Debugf("DigestName: '%s'\n", c.DigestName)
 
-	// Create the full xattribute name from the os, const and digest
-	if runtime.GOOS == "linux" {
-		c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
-	} else {
-		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
+	// Check the current OS and create the full xattribute name from the os, const and digest
+	switch runtime.GOOS {
+		case "darwin", "freebsd":
+			c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
+		case "linux":
+			c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
+		default:
+			c.logObject.Fatalf("Error: non-supported OS type '%s'\n", runtime.GOOS)
+			c.logObject.Fatalf("Supported OS types 'darwin, freebsd, linux'\n")
+			os.Exit(3)
 	}
 
 	c.logObject.Debugf("c.xattribute_fullname: '%s'\n", c.xattribute_fullname)
@@ -239,13 +245,13 @@ func printHelp() {
 integrity is a tool for calculating, storing and verifying checksums for files.
 A number of different types of checksum are supported with the result stored in the file's
 extended attributes. This allows the file to be moved between directories
-or copied to another machine while maintaining the checksum data along with the file.
+or copied to another machine while retaining the checksum data along with the file.
 
-This checksum data can be used to verify the integrity of the file and ensure
-it's contents have not been changed or become corrupted.
+This checksum data can be used to verify the integrity of the file at a later date and
+ensure it's contents have not been changed or become corrupted.
 
 The checksum data is also useful for efficiently finding duplicate files in
-different directories'
+different directories.
 
 Usage: integrity [OPTIONS] FILE|PATH
 
@@ -258,41 +264,47 @@ Usage Examples:
     integrity myfile.jpg
     > myfile.jpg : sha1 : PASSED
 
-  Adding integrity data to a file, skip if the file already has integrity dat
+	integrity file_no_integrity_checksum.jpg
+	> file_no_integrity_checksum.jpg : No checksums found
+
+  Adding integrity data to a file, skip if the file already has integrity data
     integrity -a data_01.dat
     > data01.dat : sha1 : added
 
-  Adding integrity data to a file, forcing a recalcuation if file already has integrity data
-    integrity -a -f data01.dat
-    > data01.dat : sha1 : added
+	integrity -a myfile.jpg
+	> myfile.jpg : sha1 : exists, skipping
 
-  Checking the integrity of a file
-    integrity -c data_01.dat
-    > data01.dat : sha1 : PASSED
-    > data01.dat : FAILED # Todo: Fix output to include sha1
+  Adding integrity data to a file, forcing a recalcuation if file already has integrity data
+    integrity -a -f myfile.jpg
+    > myfile.jpg : sha1 : added
+
+  Checking the integrity of a list of files
+    integrity *.jpg
+    > myfile.jpg : sha1 : PASSED
+    > wrong_checksum.jpg : sha1: FAILED
 
   Checking the integrity of a file with integrity data verbosely
-    integrity -v  -c  data01.dat
+    integrity -v myfile.jpg
+    > myfile.jpg : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909 : PASSED
+
+    integrity v wrong_checksum.jpg
+    > Error checking sha1 checksum; wrong_checksum.jpg : Calculated checksum and filesystem read checksum differ!
+      ├── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392]
+      └── disk; [3fc98aa337e328816416e179afc863a75ffb330a]
+
+  List integrity data for default checksum, no verification
+    integrity -l myfile.jpg
+    > myfile.jpg : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909
+
+  List integrity data for detault checksum, with current validity check
+    integrity -l -c data_01.dat
     > data01.dat : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909 : PASSED
 
-    integrity -c -v data_01_corrupt.dat
-    > Error checking checksum; data_01_corrupt.dat : Calculated checksum and filesystem read checksum differ!
-      ├── xatr; [3fc98aa337e328816416e179afc863a75ffb330a]
-      └── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392]
-
-  Listing integrity data
-    integrity -l data_01.dat # Todo: add digest to normal output
-    > data01.dat : 65bb1872af65ed02db42f603c786f5ec7d392909
-
-  Listing integrity data verbosely
-    integrity -l -v data_01.dat
-    > data01.dat : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909
-
-  Listing integrity data as shasum command output
+  Listing integrity data as shasum command output, note only shows any sha1 checksums
     integrity -l --display-format=sha1sum  data01.dat
     > 65bb1872af65ed02db42f603c786f5ec7d392909 *data01.dat
 
-  Listing integrity data as md5sum command output
+  Listing integrity data as md5sum command output, note only shows any md5 checksums
     integrity -l --display-format=md5sum  data01.dat
     > 65bb1872af65ed02db42f603c786f5ec7d392909  data01.dat
 
@@ -300,6 +312,27 @@ Usage Examples:
     integrity -l -x data_01.dat
     > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e
       data_01.dat : sha1 : ffccc1f78abcc5ac8b8434a5c4eeab75e64918ca
+
+  Check all checksums stored
+    integrity -c -x data_01.dat
+    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e : PASSED
+      data_01.dat : sha1 : ffccc1f78abcc5ac8b8434a5c4eeab75e64918ca : FAILED
+
+  Check all checksums stored verbosely
+    integrity -c -x -v data_01.dat
+    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e : PASSED
+    > Error checking sha1 checksum; "wrong_checksum.jpg" : Calculated checksum and filesystem read checksum differ!
+      ├── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392] : CALC
+      └── disk; [3fc98aa337e328816416e179afc863a75ffb330a] : FAILED
+
+  Remove the default digest's checksum data
+    integrity -d data_01.dat
+    > data_01.dat : sha1 : REMOVED
+
+  Remove the all digests's checksum data
+    integrity -d -x data_01.dat
+    > data_01.dat : md5 : REMOVED
+    > data_01.dat : sha1 : REMOVED
 
   Recursively add integrity data to all files within a directory structure
     integrity -a -r ~/data/
@@ -309,18 +342,20 @@ Usage Examples:
 
 Further Information:
 
-  When copying files, extended attributes should be preserved to ensure
-  integrity data is copied.
+  When copying files across disks or machines extended attributes should be preserved to ensure
+  the file's integrity data is also copied.
+
+  Note: the destination filesystem must support extended attributes (see: Supported filesystems)
 
   For example:
     rsync -X source destination
     cp -p source destination
 
-  The digest can be set through an environment variable I_DIGEST. This allows for a you to set your prefered digest
+  The default digest can be set through an environment variable INTEGRITY_DIGEST. This allows for a you to set your prefered digest
   method without needing to set it on the command line each time.
 
   For example:
-    I_DIGEST='sha256' integrity -a file.dat
+  	INTEGRITY_DIGEST='blake2s_256' integrity -a myfile.dat
 
 Design Choices:
 
@@ -341,17 +376,17 @@ Design Choices:
 	  For example:
 
 	     integrity -c file.dat
-	     Check a file's default checksum (sha1)
+	     Check a file's default digest (sha1)
+		 (The default digest type is sha1 unless overwritten by the environment variable INTEGRITY_DIGEST)
 
 	     integrity -a file.dat
-	     Add a checksum using the default digest (sha1), displaying no output if the the action is sucessful, skipping
-	     if the file already has one stored
+	     Add a checksum using the default digest (sha1)
 
 	     integrity -d file.dat
-	     Remove the default checksum (sha1) data, skipping if there is none stored
+	     Remove the default digest (sha1) data
 
          integrity -l file.dat
-	     Display a file's default checksum (sha1) data, skipping if there is none stored
+	     List the default digest (sha1) data
 
 Supported Checksum Digest Algorithms:
 
@@ -374,8 +409,8 @@ Supported Checksum Digest Algorithms:
     * blake2b_256
     * blake2b_384
     * blake2b_512
-    * oshash : hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
-    * phash : perceptive image hash
+    * oshash : media hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
+    * phash : perceptive image hash algorithm (Through https://github.com/corona10/goimagehash, see: https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html)
   `)
 
 }
