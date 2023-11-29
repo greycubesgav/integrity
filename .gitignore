@@ -6,3 +6,4 @@ bin/
 *.rpm
 *.apk
 *.txz
+*.dat
