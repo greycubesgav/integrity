@@ -14,7 +14,7 @@ all:
 	@echo "Default target"
 
 build: bin-dir
-	go build -o $(BIN_DIR)/$(BIN);
+	go build -o $(BIN_DIR)/$(BIN) cmd/integrity/integrity.go
 
 build-symlinks:
 	ln -s ./integrity ./bin/integrity.sha1
@@ -114,4 +114,6 @@ package-deb-control:
 bin-dir:
 	mkdir -p $(BIN_DIR)
 
+test:
+	go test
 

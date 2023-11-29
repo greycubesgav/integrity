@@ -1,0 +1,2 @@
+! exec integrity
+stdout 'Error : no arguments given\n'

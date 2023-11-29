@@ -1,0 +1,34 @@
+# Try and add a checksum to a new file
+exec integrity -a data.dat
+stdout 'data.dat : sha1 : added'
+
+ # Verify the sum created
+exec integrity -v --digest=sha1 data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
+
+# try and add a new checksum on top
+exec integrity -a --digest=sha1 data.dat
+stdout 'data.dat : sha1 : skipped'
+
+# try and remove the checksum
+exec integrity -d --digest=sha1 data.dat
+! stdout .
+
+# verify the checksum has been removed
+exec integrity -v --digest=sha1 data.dat
+stdout 'data.dat : sha1 : no checksum, skipped'
+
+# add an ohash checksum
+exec integrity -a --digest=oshash data.dat
+stdout 'data.dat : oshash : added'
+
+# add an ohash checksum
+! exec integrity -a --digest=none data.dat
+
+# add an phash chdcksum
+#exec integrity -a --digest=phash data.dat
+#stdout 'data.dat : phash : added'
+# FAILING
+
+-- data.dat --
+hello world

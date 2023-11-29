@@ -1,0 +1,8 @@
+# Show the help message
+exec integrity -h
+# Show the version
+exec integrity --version
+# Show internal information
+exec integrity --info
+# Show error no arguments given and usage instructions
+! exec integrity

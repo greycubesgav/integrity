@@ -1,4 +1,4 @@
-package main
+package integrity
 
 import (
 	"crypto"
@@ -9,18 +9,20 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
+	"io"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strings"
+
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/xattr"
 	_ "golang.org/x/crypto/blake2b"
 	_ "golang.org/x/crypto/md4"
 	_ "golang.org/x/crypto/ripemd160"
 	_ "golang.org/x/crypto/sha3"
-	"hash"
-	"io"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 )
 
 type integrity_fileCard struct {
@@ -35,13 +37,12 @@ type integrity_fileCard struct {
 // ToDo change errors to summarise at end like rsync - some errors occured
 // ToDo check all errors goto stderr all normal messages go to stdout
 
-var config *Config = NewConfig()
+var config *Config = nil
 
 func integ_testChecksumStored(currentFile *integrity_fileCard) (bool, error) {
 	var err error
 	if _, err = xattr.Get(currentFile.fullpath, config.xattribute_fullname); err != nil {
-		var errorString string
-		errorString = err.Error()
+		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 			// We got an error with attribute not found so simply return false and no error
 			return false, nil
@@ -69,8 +70,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 		}
 		data, err = xattr.Get(currentFile.fullpath, oldAttribute)
 		if err != nil {
-			var errorString string
-			errorString = err.Error()
+			var errorString string = err.Error()
 			if strings.Contains(errorString, "attribute not found") {
 				if config.Verbose {
 					fmt.Printf("%s : Didn't find old attribute: %s\n", currentFile.fullpath, oldAttribute)
@@ -99,7 +99,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 	}
 	if !found {
 		// We've not found any of the old attributes
-		err = errors.New("No old attributes found")
+		err = errors.New("no old attributes found")
 		return err
 	}
 	return nil
@@ -111,7 +111,7 @@ func integ_getChecksumRaw(path string, digest_name string) (string, error) {
 	if data, err = xattr.Get(path, config.xattribute_fullname); err != nil {
 		return "", err
 	}
-	return string(data[:len(data)]), nil
+	return string(data), nil
 }
 
 func integ_getChecksum(currentFile *integrity_fileCard) error {
@@ -131,8 +131,7 @@ func integ_getChecksum(currentFile *integrity_fileCard) error {
 func integ_removeChecksum(currentFile *integrity_fileCard) (bool, error) {
 	var err error
 	if err = xattr.Remove(currentFile.fullpath, config.xattribute_fullname); err != nil {
-		var errorString string
-		errorString = err.Error()
+		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") {
 			// We got an error with attribute not found so simply return false and no error
 			return false, nil
@@ -157,7 +156,7 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	config.logObject.Debugf("integ_generateChecksum config.DigestName:%s\n", config.DigestName)
 
 	if config.DigestName == "oshash" {
-		currentFile.checksum, err = OSHashFromFilePath(currentFile.fullpath)
+		currentFile.checksum, err = oshashFromFilePath(currentFile.fullpath)
 		if err != nil {
 			return err
 		}
@@ -169,7 +168,7 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	} else {
 		var hashObj crypto.Hash = config.DigestHash
 		if !hashObj.Available() {
-			return fmt.Errorf("integ_generateChecksum: hash object [%s] not compiled in!", hashObj)
+			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", config.DigestHash)
 		}
 		var hashFunc hash.Hash = hashObj.New()
 		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
@@ -248,11 +247,12 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 	// Pass in the fileDisplayPath so we only need to generate it once outside this function
 
 	if err = integ_getChecksum(currentFile); err != nil {
-		var errorString string
-		errorString = err.Error()
+		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") {
 			if config.Verbose {
 				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
+			} else {
+				fmt.Printf("%s : %s : [none]\n", fileDisplayPath, config.DigestName)
 			}
 		} else {
 			fmt.Printf("%s : Error : %s\n", fileDisplayPath, err.Error())
@@ -278,8 +278,7 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 
 func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
 	if config.Option_ShortPaths {
-		var fileInfo os.FileInfo
-		fileInfo = *currentFile.FileInfo
+		var fileInfo os.FileInfo = *currentFile.FileInfo
 		return fileInfo.Name()
 	} else {
 		return currentFile.fullpath
@@ -298,9 +297,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		currentFile.fullpath = path
 
 		// Generate the display path here as most options will need it
-		var fileDisplayPath string
-		fileDisplayPath = integ_generatefileDisplayPath(&currentFile)
+		var fileDisplayPath string = integ_generatefileDisplayPath(&currentFile)
 
+		//----------------------------------------------------------------------------
+		// ToDo: this following 2 blocks are ran for every file, this could be optimised to run 1 during config setup
 		// Generate a list of digests to work on here to prevent very similar code blocks for 1 hash and multiple hashes
 		var digestList map[string]crypto.Hash
 		digestList = make(map[string]crypto.Hash)
@@ -309,17 +309,32 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		} else {
 			digestList[config.DigestName] = config.DigestHash
 		}
+		// Sort the list of digestNames we're running against
+		digestNames := make([]string, 0, len(digestList)) // The sorted list of digestNames we'll run against
+		for digestName := range digestList {
+			digestNames = append(digestNames, digestName)
+		}
+		sort.Strings(digestNames)
+		//----------------------------------------------------------------------------
 
 		switch config.Action {
 		case "list":
-			for hashType := range digestList {
-				config.DigestName = hashType
-				config.DigestHash = digestTypes[hashType]
+			for _, digestName := range digestNames {
+				config.DigestName = digestName
+				config.DigestHash = digestTypes[digestName]
 				if err = integ_printChecksum(err, &currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
 					continue
 				}
 			}
+			// for digestName := range digestList {
+			// 	config.DigestName = digestName
+			// 	config.DigestHash = digestTypes[digestName]
+			// 	if err = integ_printChecksum(err, &currentFile, fileDisplayPath); err != nil {
+			// 		// Only continue as the function would have printed any error already
+			// 		continue
+			// 	}
+			// }
 		case "delete":
 			for hashType := range digestList {
 				config.DigestName = hashType
@@ -375,26 +390,30 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 
 		case "check":
 			var haveDigestStored bool
-			haveDigestStored, err = integ_testChecksumStored(&currentFile)
-			if haveDigestStored {
-				if err = integ_checkChecksum(&currentFile); err != nil {
-					if config.Verbose {
-						fmt.Printf("Error checking checksum; %s\n", err.Error())
+			if haveDigestStored, err = integ_testChecksumStored(&currentFile); err != nil {
+				fmt.Fprintf(os.Stderr, "%s : failed checking if checksum was stored : %s\n", fileDisplayPath, err)
+				return nil
+			} else {
+				if haveDigestStored {
+					if err = integ_checkChecksum(&currentFile); err != nil {
+						if config.Verbose {
+							fmt.Printf("Error checking checksum; %s\n", err.Error())
+						} else {
+							fmt.Printf("%s : FAILED\n", fileDisplayPath)
+						}
 					} else {
-						fmt.Printf("%s : FAILED\n", fileDisplayPath)
+						if config.Verbose {
+							fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+						} else {
+							fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+						}
 					}
 				} else {
 					if config.Verbose {
-						fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-					} else {
-						fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+						fmt.Printf("%s : %s : no checksum, skipped\n", fileDisplayPath, config.DigestName)
 					}
+					return nil
 				}
-			} else {
-				if config.Verbose {
-					fmt.Printf("%s : %s : no checksum, skipped\n", fileDisplayPath, config.DigestName)
-				}
-				return nil
 			}
 		case "transform":
 			if err = integ_swapXattrib(&currentFile); err != nil {
@@ -413,13 +432,15 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)
-			os.Exit(2)
+			config.returnCode = 6
+			return errors.New("unknown action")
 		}
 	}
 	return nil
 }
 
 func integrityLogf(fmt_ string, args ...interface{}) {
+
 	programCounter, file, line, _ := runtime.Caller(1)
 	fn := runtime.FuncForPC(programCounter)
 	prefix := fmt.Sprintf("[%s:%s %d] %s", file, fn.Name(), line, fmt_)
@@ -427,7 +448,22 @@ func integrityLogf(fmt_ string, args ...interface{}) {
 	//fmt.Println()
 }
 
-func main() {
+func Run() int {
+
+	config = newConfig()
+
+	config.logObject.Debugf("integrity.Run()\n")
+	config.logObject.Debugf("config.returnCode: %d\n", config.returnCode)
+
+	switch config.returnCode {
+	case 0:
+		// config.returnCode=0 reserved for success
+	case 1:
+		// config.returnCode=1 reserved for show help runs, we show output and then exit but it wasn't an error
+		return 0
+	default:
+		return config.returnCode
+	}
 
 	for _, path := range getopt.Args() {
 
@@ -435,6 +471,7 @@ func main() {
 		// If we can stat the given file
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[%s] Error : there was an issue reading from this file\n└── %s\n", path, err)
+			config.returnCode = 10
 			continue
 		}
 
@@ -443,7 +480,9 @@ func main() {
 				// Walk the directory structure
 				err := filepath.Walk(path, handle_path)
 				if err != nil {
-					config.logObject.Fatal(err)
+					//config.logObject.Fatal(err)
+					config.logObject.Error(err)
+					return 1
 				}
 			} else {
 				if config.Verbose {
@@ -455,5 +494,5 @@ func main() {
 			handle_path(path, path_fileinfo, err)
 		}
 	}
-
+	return config.returnCode
 }

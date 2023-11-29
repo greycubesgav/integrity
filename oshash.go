@@ -1,4 +1,4 @@
-package main
+package integrity
 
 import (
 	"bytes"
@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-// OSHashFromFilePath calculates the hash using the same algorithm that
+// oshashFromFilePath calculates the hash using the same algorithm that
 // OpenSubtitles.org uses.
 //
 // Calculation is as follows:
 // size + 64 bit checksum of the first and last 64k bytes of the file.
-func 	OSHashFromFilePath(filePath string) (string, error) {
+func oshashFromFilePath(filePath string) (string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return "", err
