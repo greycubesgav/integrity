@@ -18,7 +18,12 @@ cmp stdout md5sum.out
 exec integrity -lx data_list.dat
 cmp stdout list_all.txt
 
-# List digests as the md5 format
+# Delete all the possible digests
+exec integrity -dx data_list.dat
+exec integrity -lx data_list.dat
+cmp stdout list_deleted.txt
+
+# List digests as the none format, should error
 ! exec integrity --display-format=none data_list.dat
 
 -- data_list.dat --
@@ -34,6 +39,26 @@ data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9
 data_list.dat : md5sha1 : [none]
 data_list.dat : ripemd160 : [none]
 data_list.dat : sha1 : 3b854f5e13be0328b7c7701ff679223c72d64550
+data_list.dat : sha224 : [none]
+data_list.dat : sha256 : [none]
+data_list.dat : sha384 : [none]
+data_list.dat : sha3_224 : [none]
+data_list.dat : sha3_256 : [none]
+data_list.dat : sha3_384 : [none]
+data_list.dat : sha3_512 : [none]
+data_list.dat : sha512 : [none]
+data_list.dat : sha512_224 : [none]
+data_list.dat : sha512_256 : [none]
+-- list_deleted.txt --
+data_list.dat : blake2b_256 : [none]
+data_list.dat : blake2b_384 : [none]
+data_list.dat : blake2b_512 : [none]
+data_list.dat : blake2s_256 : [none]
+data_list.dat : md4 : [none]
+data_list.dat : md5 : [none]
+data_list.dat : md5sha1 : [none]
+data_list.dat : ripemd160 : [none]
+data_list.dat : sha1 : [none]
 data_list.dat : sha224 : [none]
 data_list.dat : sha256 : [none]
 data_list.dat : sha384 : [none]
