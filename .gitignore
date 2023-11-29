@@ -1,5 +1,5 @@
 # Compiled files
-integrity
+/integrity
 bin/
 # Packages
 *.deb
