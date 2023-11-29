@@ -322,6 +322,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for _, digestName := range digestNames {
 				config.DigestName = digestName
 				config.DigestHash = digestTypes[digestName]
+				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
 				if err = integ_printChecksum(err, &currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
 					continue
@@ -339,6 +340,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for hashType := range digestList {
 				config.DigestName = hashType
 				config.DigestHash = digestTypes[hashType]
+				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
 				var hadAttribute bool
 				hadAttribute, err = integ_removeChecksum(&currentFile)
 				if err != nil {
