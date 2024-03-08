@@ -2,6 +2,7 @@ package integrity
 
 import (
 	"crypto"
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,12 @@ import (
 	"github.com/pborman/getopt/v2"
 	"github.com/sirupsen/logrus"
 )
+
+//go:embed help.txt
+var helpText string
+
+//go:embed usage.txt
+var usageText string
 
 const integrity_website = "https://github.com/greycubesgav/integrity"
 const xattribute_name = "integrity"
@@ -259,176 +266,7 @@ func (c *Config) parseCmdlineOpt() {
 func printHelp() {
 	fmt.Printf("integrity version %s\n", integrity_version)
 	fmt.Printf("Web site: %s\n", integrity_website)
-	fmt.Printf(`
-integrity is a tool for calculating, storing and verifying checksums for files.
-A number of different types of checksum are supported with the result stored in the file's
-extended attributes. This allows the file to be moved between directories
-or copied to another machine while retaining the checksum data along with the file.
-
-This checksum data can be used to verify the integrity of the file at a later date and
-ensure it's contents have not been changed or become corrupted.
-
-The checksum data is also useful for efficiently finding duplicate files in
-different directories.
-
-Usage: integrity [OPTIONS] FILE|PATH
-
-Options:`)
+	fmt.Println(helpText)
 	getopt.Usage()
-	fmt.Println(`
-Usage Examples:
-
-  Checking a file's integrity checksum
-    integrity myfile.jpg
-    > myfile.jpg : sha1 : PASSED
-
-	integrity file_no_integrity_checksum.jpg
-	> file_no_integrity_checksum.jpg : No checksums found
-
-  Adding integrity data to a file, skip if the file already has integrity data
-    integrity -a data_01.dat
-    > data01.dat : sha1 : added
-
-	integrity -a myfile.jpg
-	> myfile.jpg : sha1 : exists, skipping
-
-  Adding integrity data to a file, forcing a recalcuation if file already has integrity data
-    integrity -a -f myfile.jpg
-    > myfile.jpg : sha1 : added
-
-  Checking the integrity of a list of files
-    integrity *.jpg
-    > myfile.jpg : sha1 : PASSED
-    > wrong_checksum.jpg : sha1: FAILED
-
-  Checking the integrity of a file with integrity data verbosely
-    integrity -v myfile.jpg
-    > myfile.jpg : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909 : PASSED
-
-    integrity v wrong_checksum.jpg
-    > Error checking sha1 checksum; wrong_checksum.jpg : Calculated checksum and filesystem read checksum differ!
-      ├── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392]
-      └── disk; [3fc98aa337e328816416e179afc863a75ffb330a]
-
-  List integrity data for default checksum, no verification
-    integrity -l myfile.jpg
-    > myfile.jpg : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909
-
-  List integrity data for detault checksum, with current validity check
-    integrity -l -c data_01.dat
-    > data01.dat : sha1 : 65bb1872af65ed02db42f603c786f5ec7d392909 : PASSED
-
-  Listing integrity data as shasum command output, note only shows any sha1 checksums
-    integrity -l --display-format=sha1sum  data01.dat
-    > 65bb1872af65ed02db42f603c786f5ec7d392909 *data01.dat
-
-  Listing integrity data as md5sum command output, note only shows any md5 checksums
-    integrity -l --display-format=md5sum  data01.dat
-    > 65bb1872af65ed02db42f603c786f5ec7d392909  data01.dat
-
-  List all checksums stored, not just the default/digest selected
-    integrity -l -x data_01.dat
-    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e
-      data_01.dat : sha1 : ffccc1f78abcc5ac8b8434a5c4eeab75e64918ca
-
-  Check all checksums stored
-    integrity -c -x data_01.dat
-    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e : PASSED
-      data_01.dat : sha1 : ffccc1f78abcc5ac8b8434a5c4eeab75e64918ca : FAILED
-
-  Check all checksums stored verbosely
-    integrity -c -x -v data_01.dat
-    > data_01.dat : md5 : 10c8d3e65b9243454b6f5f24e5f3197e : PASSED
-    > Error checking sha1 checksum; "wrong_checksum.jpg" : Calculated checksum and filesystem read checksum differ!
-      ├── calc; [32c48f2bca002218e7488d5d41bb9c82743a3392] : CALC
-      └── disk; [3fc98aa337e328816416e179afc863a75ffb330a] : FAILED
-
-  Remove the default digest's checksum data
-    integrity -d data_01.dat
-    > data_01.dat : sha1 : REMOVED
-
-  Remove the all digests's checksum data
-    integrity -d -x data_01.dat
-    > data_01.dat : md5 : REMOVED
-    > data_01.dat : sha1 : REMOVED
-
-  Recursively add integrity data to all files within a directory structure
-    integrity -a -r ~/data/
-
-  Recursively list the checksum as shasum output
-    integrity -l -r ~/data/
-
-Further Information:
-
-  When copying files across disks or machines extended attributes should be preserved to ensure
-  the file's integrity data is also copied.
-
-  Note: the destination filesystem must support extended attributes (see: Supported filesystems)
-
-  For example:
-    rsync -X source destination
-    cp -p source destination
-
-  The default digest can be set through an environment variable INTEGRITY_DIGEST. This allows for a you to set your prefered digest
-  method without needing to set it on the command line each time.
-
-  For example:
-  	INTEGRITY_DIGEST='blake2s_256' integrity -a myfile.dat
-
-Design Choices:
-
-    * By default this utility is designed to quiet on output. i.e. when adding trying to add a checksum to a file with one
-	  stored already, the app will simply skip over the file and continue. This is because the utility is meant to be run
-	  over large numbers of data files which may or may not already have checksum data so output is kept to a minimum.
-
-	  For example:
-
-	     integrity -a -r directory/
-	     Add the default checksum data too all files, 'added' will be shown for all files which had checksum data added.
-		 Nothing will be shown for the others.
-
-      Add the -v flag to see more verbose output.
-
-	* The utility is designed to do "sensible" things with basic options
-
-	  For example:
-
-	     integrity -c file.dat
-	     Check a file's default digest (sha1)
-		 (The default digest type is sha1 unless overwritten by the environment variable INTEGRITY_DIGEST)
-
-	     integrity -a file.dat
-	     Add a checksum using the default digest (sha1)
-
-	     integrity -d file.dat
-	     Remove the default digest (sha1) data
-
-         integrity -l file.dat
-	     List the default digest (sha1) data
-
-Supported Checksum Digest Algorithms:
-
-    * md4
-    * md5
-    * sha1
-    * sha224
-    * sha256
-    * sha384
-    * sha512
-    * md5sha1
-    * ripemd160
-    * sha3_224
-    * sha3_256
-    * sha3_384
-    * sha3_512
-    * sha512_224
-    * sha512_256
-    * blake2s_256
-    * blake2b_256
-    * blake2b_384
-    * blake2b_512
-    * oshash : media hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
-    * phash : perceptive image hash algorithm (Through https://github.com/corona10/goimagehash, see: https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html)
-  `)
-
+	fmt.Println(usageText)
 }

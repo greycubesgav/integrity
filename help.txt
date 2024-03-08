@@ -1,0 +1,13 @@
+integrity is a tool for calculating, storing and verifying checksums for files.
+A number of different types of checksum are supported with the result stored
+in the file's extended attributes. This allows the file to be moved between
+directories or copied to another machine while retaining the checksum data
+along with the file.
+
+This checksum data can be used to verify the integrity of the file at a later
+date and ensure it's contents have not been changed or become corrupted.
+
+The checksum data is also useful for efficiently finding duplicate files in
+different directories.
+
+Usage: integrity [OPTIONS] FILE|PATH
