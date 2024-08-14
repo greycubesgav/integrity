@@ -1,0 +1,46 @@
+FROM vbatts/slackware:15.0
+
+# # Install build dependencies
+# RUN echo 'Y' | slackpkg install gcc && \
+# echo 'Y' | slackpkg install make && \
+# echo 'Y' | slackpkg install binutils && \
+# echo 'Y' | slackpkg install kernel-headers && \
+# echo 'Y' | slackpkg install glibc && \
+# echo 'Y' | slackpkg install guile
+
+# RUN echo 'Y' | slackpkg install gc && \
+# echo 'Y' | slackpkg install automake && \
+# echo 'Y' | slackpkg install autoconf && \
+# echo 'Y' | slackpkg install m4 && \
+# echo 'Y' | slackpkg install zlib && \
+# echo 'Y' | slackpkg install krb5 && \
+# echo 'Y' | slackpkg install libproxy && \
+# echo 'Y' | slackpkg install expat
+
+# RUN echo 'Y' | slackpkg install ca-certificates && \
+# echo 'Y' | slackpkg install binutils && \
+# echo 'Y' | slackpkg install gc && \
+# echo 'Y' | slackpkg install make && \
+# echo 'Y' | slackpkg install guile
+
+# Create the slackware package from the binary already compiled
+# ToDo fix architecture
+
+RUN echo 'Y' | slackpkg install binutils
+
+WORKDIR /app
+COPY ./bin/integrity_linux_amd64 /app
+COPY ./bin/integrity_linux_arm64 /app
+COPY ./packaging/slackware /app
+#RUN ./integrity.SlackBuild
+
+# WORKDIR /tmp
+# RUN wget http://www.slackware.com/~alien/slackbuilds/google-go-lang/pkg64/15.0/google-go-lang-1.22.5-x86_64-1alien.txz
+# RUN upgradepkg --install-new --reinstall google-go-lang-1.22.5-x86_64-1alien.txz
+# RUN export PATH=/usr/lib64/go1.22.5/go/bin/:$PATH
+
+# echo 'Y' | slackpkg install glibc && \
+# echo 'Y' | slackpkg install gc && \
+# echo 'Y' | slackpkg install gcc && \
+
+ENTRYPOINT ["bash"]

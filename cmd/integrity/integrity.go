@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/greycubesgav/integrity"
+	"github.com/greycubesgav/integrity/pkg/integrity"
 )
 
 func main() {

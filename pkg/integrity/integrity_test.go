@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/greycubesgav/integrity"
+	"github.com/greycubesgav/integrity/pkg/integrity"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 

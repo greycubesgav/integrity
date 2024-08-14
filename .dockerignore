@@ -1,6 +1,5 @@
 # Compiled files
 integrity
-bin/
 # Packages
 *.deb
 *.rpm
