@@ -128,5 +128,9 @@ build-in-docker:
 	docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.16 bash -c "go get -d ./...  ; go build -v"
 
 test:
-	go test cmd/integrity/integrity.go
+	#go test github.com/greycubesgav/integrity/pkg/integrity
+	go test ./pkg/integrity
 
+test-code-coverage:
+	# Run to generate code coverage, then cmd-shift-p : go:toggle test coverage to view code coverage
+	go test -v -cover ./...
