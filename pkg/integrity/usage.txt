@@ -4,15 +4,15 @@ Usage Examples:
     integrity myfile.jpg
     > myfile.jpg : sha1 : PASSED
 
-	integrity file_no_integrity_checksum.jpg
-	> file_no_integrity_checksum.jpg : No checksums found
+  integrity file_no_integrity_checksum.jpg
+  > file_no_integrity_checksum.jpg : No checksums found
 
   Adding integrity data to a file, skip if the file already has integrity data
     integrity -a data_01.dat
     > data01.dat : sha1 : added
 
-	integrity -a myfile.jpg
-	> myfile.jpg : sha1 : exists, skipping
+  integrity -a myfile.jpg
+  > myfile.jpg : sha1 : exists, skipping
 
   Adding integrity data to a file, forcing a recalcuation if file already has integrity data
     integrity -a -f myfile.jpg
@@ -95,38 +95,38 @@ Further Information:
   method without needing to set it on the command line each time.
 
   For example:
-  	INTEGRITY_DIGEST='blake2s_256' integrity -a myfile.dat
+    INTEGRITY_DIGEST='blake2s_256' integrity -a myfile.dat
 
 Design Choices:
 
     * By default this utility is designed to quiet on output. i.e. when adding trying to add a checksum to a file with one
-	  stored already, the app will simply skip over the file and continue. This is because the utility is meant to be run
-	  over large numbers of data files which may or may not already have checksum data so output is kept to a minimum.
+    stored already, the app will simply skip over the file and continue. This is because the utility is meant to be run
+    over large numbers of data files which may or may not already have checksum data so output is kept to a minimum.
 
-	  For example:
+    For example:
 
-	     integrity -a -r directory/
-	     Add the default checksum data too all files, 'added' will be shown for all files which had checksum data added.
-		 Nothing will be shown for the others.
+       integrity -a -r directory/
+       Add the default checksum data too all files, 'added' will be shown for all files which had checksum data added.
+     Nothing will be shown for the others.
 
       Add the -v flag to see more verbose output.
 
-	* The utility is designed to do "sensible" things with basic options
+  * The utility is designed to do "sensible" things with basic options
 
-	  For example:
+    For example:
 
-	     integrity -c file.dat
-	     Check a file's default digest (sha1)
-		 (The default digest type is sha1 unless overwritten by the environment variable INTEGRITY_DIGEST)
+       integrity -c file.dat
+       Check a file's default digest (sha1)
+     (The default digest type is sha1 unless overwritten by the environment variable INTEGRITY_DIGEST)
 
-	     integrity -a file.dat
-	     Add a checksum using the default digest (sha1)
+       integrity -a file.dat
+       Add a checksum using the default digest (sha1)
 
-	     integrity -d file.dat
-	     Remove the default digest (sha1) data
+       integrity -d file.dat
+       Remove the default digest (sha1) data
 
          integrity -l file.dat
-	     List the default digest (sha1) data
+       List the default digest (sha1) data
 
 Supported Checksum Digest Algorithms:
 
