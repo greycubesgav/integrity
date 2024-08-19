@@ -10,6 +10,7 @@ WORKDIR /app
 COPY ./ ./
 RUN go mod download
 
+RUN make test
 RUN make build-all
 RUN make package-all
 
