@@ -242,9 +242,9 @@ func integ_checkChecksum(currentFile *integrity_fileCard) error {
 	return nil
 }
 
-func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplayPath string) error {
+func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string) error {
 	// Pass in the fileDisplayPath so we only need to generate it once outside this function
-
+	var err error
 	if err = integ_getChecksum(currentFile); err != nil {
 		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
@@ -286,6 +286,12 @@ func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
 
 func handle_path(path string, fileinfo os.FileInfo, err error) error {
 
+	if err != nil {
+		// Handle the error and return it to stop walking
+		fmt.Printf("Error walking the path %v: %v\n", path, err)
+		return err
+	}
+
 	// ToDo: Refactor output to use common print function
 	//       Something that takes the file, the message, and whether its an error type or not?
 	//       Polymorphic to add error on end if we're printing error?
@@ -322,7 +328,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				config.DigestName = digestName
 				config.DigestHash = digestTypes[digestName]
 				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
-				if err = integ_printChecksum(err, &currentFile, fileDisplayPath); err != nil {
+				if err = integ_printChecksum(&currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
 					continue
 				}
