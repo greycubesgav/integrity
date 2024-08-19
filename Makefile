@@ -126,10 +126,10 @@ docker-build-slackware-image:
 	docker build -t "greycubesgav/integrity-slackware-build:$(VERSION)" -f Dockerfile.slackware .
 
 docker-dev-slackware-image:
-	docker run -it --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-slackware-build:$(VERSION)
+	docker run -it --rm -v "$(PWD)":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-slackware-build:$(VERSION)
 
 build-in-docker:
-	docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.16 bash -c "go get -d ./...  ; go build -v"
+	docker run --rm -v "$(PWD)":/usr/src/myapp -w /usr/src/myapp golang:1.16 bash -c "go get -d ./...  ; go build -v"
 
 test:
 	#go test github.com/greycubesgav/integrity/pkg/integrity
