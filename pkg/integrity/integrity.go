@@ -44,7 +44,7 @@ func integ_testChecksumStored(currentFile *integrity_fileCard) (bool, error) {
 	if _, err = xattr.Get(currentFile.fullpath, config.xattribute_fullname); err != nil {
 		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
-			// We got an error with attribute not found so simply return false and no error
+			// We got an error with attribute not found (darwin) or no data available (linux) so simply return false and no error
 			return false, nil
 		} else {
 			// We got a different error so return false and the error
@@ -71,7 +71,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 		data, err = xattr.Get(currentFile.fullpath, oldAttribute)
 		if err != nil {
 			var errorString string = err.Error()
-			if strings.Contains(errorString, "attribute not found") {
+			if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 				if config.Verbose {
 					fmt.Printf("%s : Didn't find old attribute: %s\n", currentFile.fullpath, oldAttribute)
 				}
@@ -132,7 +132,7 @@ func integ_removeChecksum(currentFile *integrity_fileCard) (bool, error) {
 	var err error
 	if err = xattr.Remove(currentFile.fullpath, config.xattribute_fullname); err != nil {
 		var errorString string = err.Error()
-		if strings.Contains(errorString, "attribute not found") {
+		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 			// We got an error with attribute not found so simply return false and no error
 			return false, nil
 		} else {
@@ -248,7 +248,7 @@ func integ_printChecksum(err error, currentFile *integrity_fileCard, fileDisplay
 
 	if err = integ_getChecksum(currentFile); err != nil {
 		var errorString string = err.Error()
-		if strings.Contains(errorString, "attribute not found") {
+		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 			if config.Verbose {
 				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
 			} else {
