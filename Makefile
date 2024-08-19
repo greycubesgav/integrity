@@ -10,8 +10,7 @@ VERSION := $(shell grep integrity_version pkg/integrity/version.go | grep -oP '"
 
 .PHONY: build build-debug test install clean release bin-dir version docker-build-image docker-build-image
 
-all:
-	@echo "Default target"
+all: build
 
 build: bin-dir build-linux-intel
 
