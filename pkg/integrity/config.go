@@ -155,40 +155,6 @@ func (c *Config) parseCmdlineOpt() {
 		c.returnCode = 1
 		return
 	}
-	// Show internal info about the apps
-	if c.ShowInfo {
-		fmt.Printf("integrity version: %s\n", integrity_version)
-		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
-		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
-		c.returnCode = 1
-		return
-	}
-	//-----------------------------------------------------------------------------------------
-	// Return error of no arguments are given
-	//-----------------------------------------------------------------------------------------
-	if getopt.NArgs() == 0 {
-		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
-		getopt.Usage()
-		c.returnCode = 5
-		return
-	}
-
-	// Display actions list sha1 and md5, overwrite the action and digest type
-	if c.DisplayFormat != "" {
-		// If user has asked for display format, override action and digest type
-		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
-		c.Action = "list"
-		switch c.DisplayFormat {
-		case "sha1sum":
-			c.DigestName = "sha1"
-		case "md5sum":
-			c.DigestName = "md5"
-		default:
-			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
-			c.returnCode = 4
-			return
-		}
-	}
 
 	//-----------------------------------------------------------------------------------------
 	// Workout the digest we are using
@@ -241,12 +207,34 @@ func (c *Config) parseCmdlineOpt() {
 	}
 	c.logObject.Debugf("c.xattribute_fullname: '%s'\n", c.xattribute_fullname)
 
+	// Show internal info about the apps
+	if c.ShowInfo {
+		fmt.Printf("integrity version: %s\n", integrity_version)
+		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
+		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
+		c.returnCode = 1
+		return
+	}
+
 	//	if c.DisplayFormat != "" && c.DisplayFormat != "sha1sum" && c.DisplayFormat != "md5sum" {
 	//		fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
 	//		c.returnCode = 4
 	//		return
 	//	}
 
+	//-----------------------------------------------------------------------------------------
+	// Return error of no arguments are given
+	//-----------------------------------------------------------------------------------------
+	if getopt.NArgs() == 0 {
+		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
+		getopt.Usage()
+		c.returnCode = 5
+		return
+	}
+
+	//-----------------------------------------------------------------------------------------
+	// Main Actions
+	//-----------------------------------------------------------------------------------------
 	if c.Action_Check {
 		c.Action = "check"
 	} else if c.Action_Delete {
@@ -257,6 +245,23 @@ func (c *Config) parseCmdlineOpt() {
 		c.Action = "list"
 	} else if c.Action_Transform {
 		c.Action = "transform"
+	}
+
+	// Display actions list sha1 and md5, overwrite the action and digest type
+	if c.DisplayFormat != "" {
+		// If user has asked for display format, override action and digest type
+		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
+		c.Action = "list"
+		switch c.DisplayFormat {
+		case "sha1sum":
+			c.DigestName = "sha1"
+		case "md5sum":
+			c.DigestName = "md5"
+		default:
+			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
+			c.returnCode = 4
+			return
+		}
 	}
 
 	c.logObject.Debugf("c.Action: '%s'\n", c.Action)

@@ -29,7 +29,6 @@ type integrity_fileCard struct {
 	FileInfo    *os.FileInfo
 	fullpath    string
 	checksum    string
-	digest_type crypto.Hash
 	digest_name string
 }
 
@@ -105,7 +104,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 	return nil
 }
 
-func integ_getChecksumRaw(path string, digest_name string) (string, error) {
+func integ_getChecksumRaw(path string) (string, error) {
 	var err error
 	var data []byte
 	if data, err = xattr.Get(path, config.xattribute_fullname); err != nil {
@@ -117,7 +116,7 @@ func integ_getChecksumRaw(path string, digest_name string) (string, error) {
 func integ_getChecksum(currentFile *integrity_fileCard) error {
 	var err error
 	currentFile.digest_name = config.DigestName
-	if currentFile.checksum, err = integ_getChecksumRaw(currentFile.fullpath, currentFile.digest_name); err != nil {
+	if currentFile.checksum, err = integ_getChecksumRaw(currentFile.fullpath); err != nil {
 		return err
 	}
 	return nil
@@ -208,7 +207,7 @@ func integ_writeChecksum(currentFile *integrity_fileCard) error {
 func integ_confirmChecksum(currentFile *integrity_fileCard, testChecksum string) error {
 	var err error
 	var xtattrbChecksum string
-	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath, config.DigestName); err != nil {
+	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath); err != nil {
 		return err
 	}
 	if testChecksum != xtattrbChecksum {
@@ -229,7 +228,7 @@ func integ_checkChecksum(currentFile *integrity_fileCard) error {
 	if err = integ_generateChecksum(currentFile); err != nil {
 		return err
 	}
-	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath, config.DigestName); err != nil {
+	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath); err != nil {
 		return err
 	}
 	//xtattrbChecksum= "tiger";
@@ -439,15 +438,6 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		}
 	}
 	return nil
-}
-
-func integrityLogf(fmt_ string, args ...interface{}) {
-
-	programCounter, file, line, _ := runtime.Caller(1)
-	fn := runtime.FuncForPC(programCounter)
-	prefix := fmt.Sprintf("[%s:%s %d] %s", file, fn.Name(), line, fmt_)
-	fmt.Printf(prefix, args...)
-	//fmt.Println()
 }
 
 func Run() int {
