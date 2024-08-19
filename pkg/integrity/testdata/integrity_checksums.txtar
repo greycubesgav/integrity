@@ -22,7 +22,7 @@ stdout 'data.dat : sha1 : no checksum, skipped'
 exec integrity -a --digest=oshash data.dat
 stdout 'data.dat : oshash : added'
 
-# add an ohash checksum
+# add an none checksum
 ! exec integrity -a --digest=none data.dat
 
 # add an phash chdcksum

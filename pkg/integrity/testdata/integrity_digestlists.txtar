@@ -1,6 +1,6 @@
 # Try and read a checksum that doesn't exist yet
 exec integrity -l -v --digest=md5 --loglevel=debug  data_list.dat
-cmp stdout empty_md5.out
+stdout 'data_list\.dat : md5 : \[no checksum stored in (user.)*integrity.md5]'
 
 # Try and add a checksum to a new file debug
 exec integrity -a --loglevel=debug data_list.dat
@@ -85,5 +85,7 @@ data_list.dat : sha512_256 : [none]
 3b854f5e13be0328b7c7701ff679223c72d64550 *data_list.dat
 -- md5sum.out --
 d300fa70af75aa4b157382293609dcd9  data_list.dat
--- empty_md5.out --
+-- empty_md5_bsd.out --
 data_list.dat : md5 : [no checksum stored in integrity.md5]
+-- empty_md5_linux.out --
+data_list.dat : md5 : [no checksum stored in user.integrity.md5]
