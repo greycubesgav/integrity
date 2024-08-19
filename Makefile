@@ -6,11 +6,16 @@ MAC_OS=darwin
 BSD_OS=freebsd
 ARCHINTEL=amd64
 ARCHARM=arm64
-VERSION := $(shell grep integrity_version pkg/integrity/version.go | grep -oP '"\K[^"]+')
+VERSION := $(shell grep integrity_version pkg/integrity/version.go | sed -n 's/.*"\([^"]*\)".*/\1/p')
+PWD := $(shell pwd)
 
 .PHONY: build build-debug test install clean release bin-dir version docker-build-image docker-build-image
 
 all: build
+	@echo "Default target"
+
+go-get-all:
+	go get -d ./...
 
 build: bin-dir build-linux-intel
 
@@ -112,10 +117,10 @@ bin-dir:
 	mkdir -p $(BIN_DIR)
 
 docker-build-image:
-	docker build -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
+	docker build --no-cache -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
 
 docker-dev-image:
-	docker run -it --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-build:$(VERSION)
+	docker run -it --rm -v "$(PWD)":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-build:$(VERSION)
 
 docker-build-slackware-image:
 	docker build -t "greycubesgav/integrity-slackware-build:$(VERSION)" -f Dockerfile.slackware .
@@ -133,3 +138,13 @@ test:
 test-code-coverage:
 	# Run to generate code coverage, then cmd-shift-p : go:toggle test coverage to view code coverage
 	go test -v -cover ./...
+
+test-add-linux-attr:
+	setfattr -n user.test -v "This is the user.test attribute" data.dat
+	setfattr -n test -v "This is the test test attribute" data.dat
+
+test-list-linux-attr:
+	getfattr -d data.dat
+
+test-make-data.dat:
+	echo 'hello world' > data.dat
