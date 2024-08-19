@@ -10,6 +10,11 @@ stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
 exec integrity -a --digest=sha1 data.dat
 stdout 'data.dat : sha1 : skipped'
 
+ # Update the file and try and verify
+exec bash -c 'echo tiger > data.dat'
+exec integrity -v --digest=sha1 data.dat
+stdout 'Error checking checksum; data.dat : Calculated checksum and filesystem read checksum differ!'
+
 # try and remove the checksum
 exec integrity -d --digest=sha1 data.dat
 ! stdout .
