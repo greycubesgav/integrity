@@ -3,11 +3,11 @@ module github.com/greycubesgav/integrity
 go 1.20
 
 require (
-	github.com/corona10/goimagehash v1.0.3
+	github.com/corona10/goimagehash v1.1.0
 	github.com/pborman/getopt/v2 v2.1.0
 	github.com/pkg/xattr v0.4.10
-	github.com/rogpeppe/go-internal v1.11.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/rogpeppe/go-internal v1.12.0
+	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.26.0
 )
 
