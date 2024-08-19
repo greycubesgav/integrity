@@ -73,7 +73,13 @@ find -L . \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
 install -D -m755 $PRGNAM $PKG/usr/bin/$PRGNAM
-strip --strip-unneeded $PKG/usr/bin/$PRGNAM
+
+CURARCH=$( uname -m )
+TARGETARCH=$ARCH
+
+if [[ $CURARCH == $TARGETARCH ]]; then
+  strip --strip-unneeded $PKG/usr/bin/$PRGNAM
+fi
 
 #mkdir -p $PKG/usr/man/man1
 #cat snow.1 > $PKG/usr/man/man1/snow.1

@@ -32,7 +32,8 @@ WORKDIR /app
 COPY ./bin/integrity_linux_amd64 /app
 COPY ./bin/integrity_linux_arm64 /app
 COPY ./packaging/slackware /app
-#RUN ./integrity.SlackBuild
+RUN ARCH='amd64' ./integrity.SlackBuild
+RUN ARCH='arm64' ./integrity.SlackBuild
 
 # WORKDIR /tmp
 # RUN wget http://www.slackware.com/~alien/slackbuilds/google-go-lang/pkg64/15.0/google-go-lang-1.22.5-x86_64-1alien.txz
