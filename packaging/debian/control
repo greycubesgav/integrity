@@ -1,10 +1,10 @@
 Package: integrity
-Version: 0.1.0
+Version: <version>
 Maintainer: Gavin Brown <integrity@greycubes.net>
 Section: utils
 Priority: optional
 Installed-Size: 25MB
-Architecture: amd64
+Architecture: <arch>
 Homepage: <homepage>
 Provides: integrity
 Conflicts: integrity
