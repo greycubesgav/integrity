@@ -5,5 +5,9 @@ integrity
 *.rpm
 *.apk
 *.txz
+# Other
+.git
+.vscode
+.github
 Dockerfile
 README.md
