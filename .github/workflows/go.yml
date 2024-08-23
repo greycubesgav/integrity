@@ -1,4 +1,4 @@
-name: Go Build And Test
+name: Integrity Build, Test & Package
 
 on:
   workflow_dispatch:
@@ -8,19 +8,58 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build:
+  test:
     runs-on: ubuntu-latest
+    container:
+      image: golang:1.23
+
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
+    - name: Test
+      run: make test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    container:
+      image: golang:1.23
+
+    steps:
+    - uses: actions/checkout@v3
 
     - name: Build
-      run: go build -v ./...
+      run: make build
 
-    - name: Test
-      run: go test -v ./...
+  package:
+    runs-on: ubuntu-latest
+    needs: build
+    container:
+      image: golang:1.23
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies for ruby
+      run: |
+        apt-get update && apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
+
+    - name: Install fpm package manager
+      run: |
+        gem install fpm
+
+    - name: Extract Version
+      id: get_version
+      run: echo "::set-output name=VERSION::$(make show-version)"
+
+    - name: Build All
+      run: make build-all
+
+    - name: Package All
+      run: make package-rpm-intel
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: integrity_${{ steps.get_version.outputs.VERSION }}_amd64.deb  # The name of the artifact
+        path: integrity_${{ steps.get_version.outputs.VERSION }}_amd64.deb  # Path to the built artifact
