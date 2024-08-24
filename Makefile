@@ -2,6 +2,11 @@ BIN_DIR=./bin
 PKGS_DIR=./pkgs
 BIN=integrity
 INSTALL_LOCATION=/usr/local/bin
+MAINTAINER=Gavin Brown
+EMAIL=integrity@greycubes.net
+DESCRIPTION=integrity (CLI tool to calculate, store and verify a file's checksum stored with the file's extended attributes)
+URL=https://github.com/greycubesgav/integrity/
+LICENSE=LGPL
 LINUX_OS=linux
 MAC_OS=darwin
 BSD_OS=freebsd
@@ -54,8 +59,10 @@ build-all: bin build-symlinks build-linux-intel build-linux-arm build-darwin-int
 pkgs:
 	mkdir -p $(PKGS_DIR)
 
-package-deb-intel: build-linux-intel pkgs package-deb-control-intel
-	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) --deb-custom-control ./packaging/debian/control -C ./bin/ integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+package-all: package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm package-tar-intel package-tar-arm package-slackware-intel package-slackware-arm
+
+package-deb-intel: build-linux-intel pkgs package-deb-control package-deb-control-intel
+	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -63,8 +70,8 @@ package-deb-intel: build-linux-intel pkgs package-deb-control-intel
 	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
-package-deb-arm: build-linux-arm pkgs package-deb-control-arm
-	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+package-deb-arm: build-linux-arm pkgs package-deb-control package-deb-control-arm
+	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -73,7 +80,7 @@ package-deb-arm: build-linux-arm pkgs package-deb-control-arm
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-rpm-intel: build-linux-intel pkgs
-	fpm -s dir -t rpm -n integrity -v $(VERSION) -a $(ARCHINTEL) -C ./bin/ integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+	fpm -s dir -t rpm -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/ integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -82,7 +89,7 @@ package-rpm-intel: build-linux-intel pkgs
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-rpm-arm: build-linux-arm pkgs
-	fpm -s dir -t rpm -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+	fpm -s dir -t rpm -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -91,7 +98,7 @@ package-rpm-arm: build-linux-arm pkgs
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-apk-intel: build-linux-intel pkgs
-	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) -C ./bin/ integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -100,7 +107,7 @@ package-apk-intel: build-linux-intel pkgs
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-apk-arm: build-linux-arm pkgs
-	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -109,7 +116,7 @@ package-apk-arm: build-linux-arm pkgs
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-tar-intel: build-linux-intel pkgs
-	fpm -s dir -t tar -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+	fpm -s dir -t tar -n integrity_$(VERSION)_$(ARCHINTEL) -p pkgs -v $(VERSION) -a $(ARCHINTEL)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
@@ -117,33 +124,50 @@ package-tar-intel: build-linux-intel pkgs
 	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
-package-slackware-intel: build-linux-intel pkgs
-	fpm -s dir -t tar -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+package-tar-arm: build-linux-arm pkgs
+	fpm -s dir -t tar -n integrity_$(VERSION)_$(ARCHARM) -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
 	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
 	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
 	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
 	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
 	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+
+package-slackware-intel: build-linux-intel pkgs package-slackware-info
+	cd ./packaging/slackware && \
+	cp makepkg /sbin/makepkg && \
+	ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT='/app/pkgs/' ./integrity.SlackBuild
+
+package-slackware-arm: build-linux-intel pkgs package-slackware-info
+	cd ./packaging/slackware && \
+	cp makepkg /sbin/makepkg && \
+	ARCH='$(ARCHARM)' VERSION='$(VERSION)' OUTPUT='/app/pkgs/' ./integrity.SlackBuild
 
 docker-package-slackware-intel: build-linux-intel pkgs docker-build-slackware-image
 	docker cp $(docker create --name tc "greycubesgav/integrity-slackware-build:$(VERSION)"):/tmp/integrity-$(VERSION)-x86_64-1_GG.tgz ./pkgs && docker rm tc
 
 package-freebsd: build-bsd-intel pkgs
-	fpm -s dir -t apk -n freebsd -v 1.0.0 -a $(ARCHINTEL) ./
+	fpm -s dir -t apk -n freebsd -v $(VERSION) -a $(ARCHINTEL) ./
 
-package-all: package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm
+package-slackware-info:
+	sed -i 's|<version>|$(VERSION)|g' ./packaging/slackware/integrity.info
+	sed -i 's|<homepage>|$(URL)|g' ./packaging/slackware/integrity.info
+	sed -i 's|<maintainer>|$(MAINTAINER)|g' ./packaging/slackware/integrity.info
+	sed -i 's|<email>|$(EMAIL)|g' ./packaging/slackware/integrity.info
+
+package-deb-control:
+	sed -i 's|<version>|$(VERSION)|g' ./packaging/debian/control
+	sed -i 's|<homepage>|$(URL)|g' ./packaging/debian/control
+	sed -i 's|<maintainer>|$(MAINTAINER)|g' ./packaging/debian/control
 
 package-deb-control-intel:
-	sed -i 's/<version>/$(VERSION)/g' ./packaging/debian/control
 	sed -i 's/<arch>/$(ARCHINTEL)/g' ./packaging/debian/control
 
 package-deb-control-arm:
-	sed -i 's/<version>/$(VERSION)/g' ./packaging/debian/control
 	sed -i 's/<arch>/$(ARCHARM)/g' ./packaging/debian/control
 
 docker-build-image:
-	docker build --no-cache -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
+	docker build -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
 
 docker-dev-image:
 	docker run -it --rm -v "$(PWD)":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-build:$(VERSION)

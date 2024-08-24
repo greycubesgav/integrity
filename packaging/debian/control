@@ -1,9 +1,9 @@
 Package: integrity
 Version: <version>
-Maintainer: Gavin Brown <integrity@greycubes.net>
+Maintainer: <maintainer>
 Section: utils
 Priority: optional
-Installed-Size: 25MB
+Installed-Size: 1MB
 Architecture: <arch>
 Homepage: <homepage>
 Provides: integrity

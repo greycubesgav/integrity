@@ -22,7 +22,7 @@
 #  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cd $(dirname $0) ; CWD=$(pwd)
+cd "$(dirname $0)" ; CWD=$(pwd)
 
 PRGNAM=integrity
 VERSION=${VERSION:-0.1.0}
@@ -37,9 +37,6 @@ if [ -z "$ARCH" ]; then
        *) ARCH=$( uname -m ) ;;
   esac
 fi
-
-echo "Tiger Tiger: $ARCH"
-echo "Tiger Tiger: $ARCH" > /tmp/one.txt
 
 # If the variable PRINT_PACKAGE_NAME is set, then this script will report what
 # the name of the created package would be, and then exit. This information
@@ -56,14 +53,21 @@ OUTPUT=${OUTPUT:-/tmp}
 set -e
 
 rm -rf "${PKG}"
-rm -rf "${TPM}/${PRGNAM-$VERSION}"
+rm -rf "${TMP:?}/${PRGNAM-$VERSION}"
 
-mkdir -p $TMP $PKG $OUTPUT "${TPM}/${PRGNAM-$VERSION}"
+mkdir -p "$TMP" "$PKG" "$OUTPUT" "${TMP}/${PRGNAM-$VERSION}"
 
-cp "${PRGNAM}_linux_$ARCH" "${TPM}/${PRGNAM-$VERSION}/${PRGNAM}"
-cp 'README' "${TPM}/${PRGNAM-$VERSION}"
+# Copy over the bin
+cp "../../bin/${PRGNAM}_linux_$ARCH" "${TMP}/${PRGNAM-$VERSION}/${PRGNAM}"
 
-cd "${TPM}/${PRGNAM-$VERSION}"
+# Copy over the bin symlinks
+find ../../bin/ -type l -exec cp -P {} "${TMP}/${PRGNAM-$VERSION}/" \;
+
+# Copy over the README
+cp 'README' "${TMP}/${PRGNAM-$VERSION}"
+
+# Move into the build directory
+cd "${TMP}/${PRGNAM-$VERSION}"
 
 chown -R root:root .
 find -L . \
@@ -77,7 +81,7 @@ install -D -m755 $PRGNAM $PKG/usr/bin/$PRGNAM
 CURARCH=$( uname -m )
 TARGETARCH=$ARCH
 
-if [[ $CURARCH == $TARGETARCH ]]; then
+if [[ $CURARCH == "$TARGETARCH" ]]; then
   strip --strip-unneeded $PKG/usr/bin/$PRGNAM
 fi
 
