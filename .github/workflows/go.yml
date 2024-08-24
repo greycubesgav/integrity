@@ -63,3 +63,21 @@ jobs:
       with:
         name: integrity_${{ steps.get_version.outputs.VERSION }}_amd64.deb  # The name of the artifact
         path: integrity_${{ steps.get_version.outputs.VERSION }}_amd64.deb  # Path to the built artifact
+
+  build-slackware:
+    runs-on: ubuntu-latest
+    container:
+      image: vbatts/slackware:15.0
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        echo 'Y' | slackpkg install make && \
+        echo 'Y' | slackpkg install binutils && \
+        echo 'Y' | slackpkg install guile
+
+    - name: Package
+      run: |
+        ARCH='amd64' packaging/slackware/integrity.SlackBuild

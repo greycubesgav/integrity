@@ -108,7 +108,25 @@ package-apk-arm: build-linux-arm pkgs
 	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
-package-slackware-intel: build-linux-intel pkgs docker-build-slackware-image
+package-tar-intel: build-linux-intel pkgs
+	fpm -s dir -t tar -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
+	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+
+package-slackware-intel: build-linux-intel pkgs
+	fpm -s dir -t tar -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) -C ./bin/ integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
+	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+
+docker-package-slackware-intel: build-linux-intel pkgs docker-build-slackware-image
 	docker cp $(docker create --name tc "greycubesgav/integrity-slackware-build:$(VERSION)"):/tmp/integrity-$(VERSION)-x86_64-1_GG.tgz ./pkgs && docker rm tc
 
 package-freebsd: build-bsd-intel pkgs
@@ -156,6 +174,9 @@ test-list-linux-attr:
 
 test-make-data.dat:
 	echo 'hello world' > data.dat
+
+test-github-package:
+	act push -j package
 
 show-version:
 	@echo $(VERSION)
