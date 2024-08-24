@@ -141,12 +141,12 @@ package-tar-arm: build-linux-arm pkgs
 package-slackware-intel: build-linux-intel pkgs package-slackware-info
 	cd ./packaging/slackware && \
 	cp makepkg /sbin/makepkg && \
-	ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT='/app/pkgs/' ./integrity.SlackBuild
+	ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild
 
 package-slackware-arm: build-linux-intel pkgs package-slackware-info
 	cd ./packaging/slackware && \
 	cp makepkg /sbin/makepkg && \
-	ARCH='$(ARCHARM)' VERSION='$(VERSION)' OUTPUT='/app/pkgs/' ./integrity.SlackBuild
+	ARCH='$(ARCHARM)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild
 
 docker-package-slackware-intel: build-linux-intel pkgs docker-build-slackware-image
 	docker cp $(docker create --name tc "greycubesgav/integrity-slackware-build:$(VERSION)"):/tmp/integrity-$(VERSION)-x86_64-1_GG.tgz ./pkgs && docker rm tc
