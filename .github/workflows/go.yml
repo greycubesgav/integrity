@@ -78,7 +78,7 @@ jobs:
       run: |
         apt-get update && apt-get install -y binutils squashfs-tools make nodejs
 
-    - name: Package Linux Debian Intel
+    - name: Package Linux Slackware Intel
       run: make package-slackware-intel
 
     - name: Upload Build Artifact
