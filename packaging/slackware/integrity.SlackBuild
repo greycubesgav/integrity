@@ -76,7 +76,11 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
+# Install the binary in the package
 install -D -m755 $PRGNAM $PKG/usr/bin/$PRGNAM
+
+# Copy the symlinks across to the package
+cp -P ${PRGNAM}.* $PKG/usr/bin
 
 CURARCH=$( uname -m )
 TARGETARCH=$ARCH
