@@ -1,4 +1,4 @@
-name: Integrity Build, Test & Package
+name: Test, Build & Package
 
 on:
   workflow_dispatch:
