@@ -93,5 +93,8 @@ jobs:
         name: integrity_binaries
         path: bin/
 
+    - name: Display structure of downloaded files
+      run: ls -R bin/
+
     - name: Package All
       run: make package-all

@@ -36,22 +36,27 @@ build-symlinks:
 	ln -sf ./integrity ./bin/integrity.phash
 	ln -sf ./integrity ./bin/integrity.oshash
 
-build-linux-intel: bin
-	GOOS=$(LINUX_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) -ldflags "-s -w -extldflags \"-static\"" cmd/integrity/integrity.go
+build-linux-intel: bin build-symlinks
+	@if [ -f "$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL)" ]; then \
+			echo "File exists, skipping step."; \
+	else \
+			echo "File does not exist, running step."; \
+			GOOS=$(LINUX_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) -ldflags "-s -w -extldflags \"-static\"" cmd/integrity/integrity.go; \
+	fi
 
-build-linux-arm: bin
+build-linux-arm: bin build-symlinks
 	GOOS=$(LINUX_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) -ldflags "-extldflags \"-static\"" cmd/integrity/integrity.go
 
-build-darwin-intel: bin
+build-darwin-intel: bin build-symlinks
 	GOOS=$(MAC_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-build-darwin-arm: bin
+build-darwin-arm: bin build-symlinks
 	GOOS=$(MAC_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
-build-bsd-intel: bin
+build-bsd-intel: bin build-symlinks
 	GOOS=$(BSD_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-build-bsd-arm: bin
+build-bsd-arm: bin build-symlinks
 	GOOS=$(BSD_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
 build-all: bin build-symlinks build-linux-intel build-linux-arm build-darwin-intel build-darwin-arm build-bsd-intel build-bsd-arm
