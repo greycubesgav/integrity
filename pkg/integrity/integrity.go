@@ -20,8 +20,6 @@ import (
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/xattr"
 	_ "golang.org/x/crypto/blake2b"
-	_ "golang.org/x/crypto/md4"
-	_ "golang.org/x/crypto/ripemd160"
 	_ "golang.org/x/crypto/sha3"
 )
 
@@ -319,6 +317,9 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		for digestName := range digestList {
 			digestNames = append(digestNames, digestName)
 		}
+		// Add the two digests that don't come from crypto.Hash
+		//digestNames = append(digestNames, "oshash")
+		//digestNames = append(digestNames, "phash")
 		sort.Strings(digestNames)
 		//----------------------------------------------------------------------------
 
@@ -333,14 +334,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					continue
 				}
 			}
-			// for digestName := range digestList {
-			// 	config.DigestName = digestName
-			// 	config.DigestHash = digestTypes[digestName]
-			// 	if err = integ_printChecksum(err, &currentFile, fileDisplayPath); err != nil {
-			// 		// Only continue as the function would have printed any error already
-			// 		continue
-			// 	}
-			// }
+
 		case "delete":
 			for hashType := range digestList {
 				config.DigestName = hashType

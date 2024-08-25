@@ -138,7 +138,6 @@ Supported Checksum Digest Algorithms:
     * sha384
     * sha512
     * md5sha1
-    * ripemd160
     * sha3_224
     * sha3_256
     * sha3_384

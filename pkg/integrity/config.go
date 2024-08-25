@@ -24,7 +24,6 @@ const xattribute_name = "integrity"
 const env_name_prefix = "INTEGRITY"
 
 var digestTypes = map[string]crypto.Hash{
-	"md4":         crypto.MD4,
 	"md5":         crypto.MD5,
 	"sha1":        crypto.SHA1,
 	"sha224":      crypto.SHA224,
@@ -32,7 +31,6 @@ var digestTypes = map[string]crypto.Hash{
 	"sha384":      crypto.SHA384,
 	"sha512":      crypto.SHA512,
 	"md5sha1":     crypto.MD5SHA1,
-	"ripemd160":   crypto.RIPEMD160,
 	"sha3_224":    crypto.SHA3_224,
 	"sha3_256":    crypto.SHA3_256,
 	"sha3_384":    crypto.SHA3_384,

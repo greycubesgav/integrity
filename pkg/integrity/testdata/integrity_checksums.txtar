@@ -3,8 +3,16 @@ exec integrity -a data.dat
 stdout 'data.dat : sha1 : added'
 
  # Verify the sum created
-exec integrity -v --digest=sha1 data.dat
+exec integrity -v data.dat
 stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
+
+# Try and add a sha1 checksum to a new file
+exec integrity -a --digest=sha256 data.dat
+stdout 'data.dat : sha256 : added'
+
+ # Verify the sum created
+exec integrity -v --digest=sha256 data.dat
+stdout 'data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : PASSED'
 
 # try and add a new checksum on top
 exec integrity -a --digest=sha1 data.dat
@@ -27,8 +35,29 @@ stdout 'data.dat : sha1 : no checksum, skipped'
 exec integrity -a --digest=oshash data.dat
 stdout 'data.dat : oshash : added'
 
-# add an none checksum
+# add a blake2b_256 checksum
+exec integrity -a --digest=blake2b_256 data.dat
+stdout 'data.dat : blake2b_256 : added'
+
+# check the blake2b_256 checksum
+exec integrity -v --digest=blake2b_256 data.dat
+stdout 'data.dat : blake2b_256 : 6114a760f9052e0947b6d25dafe7a610b002e5da3f87d2680746c39d2e52ca8c : PASSED'
+
+# add an none checksum, output error
 ! exec integrity -a --digest=none data.dat
+
+# try to add to non-existing file
+! exec integrity -a missing.dat
+
+# Try to recurse into a non-existing dir
+! exec integrity -a -r mydir
+
+# Try to recurse into a dir without recurse
+exec mkdir mydir
+exec integrity -a mydir
+
+# Try to recurse into a dir with no files
+exec integrity -a -r mydir
 
 # add an phash chdcksum
 #exec integrity -a --digest=phash data.dat

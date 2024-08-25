@@ -9,6 +9,7 @@ import (
 
 // oshashFromFilePath calculates the hash using the same algorithm that
 // OpenSubtitles.org uses.
+// https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 //
 // Calculation is as follows:
 // size + 64 bit checksum of the first and last 64k bytes of the file.
