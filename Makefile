@@ -23,7 +23,8 @@ all: build
 go-get-all:
 	go get -d ./...
 
-build: bin build-linux-intel
+build: bin
+	go build -o bin/integrity cmd/integrity/integrity.go;
 
 bin:
 	mkdir -p $(BIN_DIR)
