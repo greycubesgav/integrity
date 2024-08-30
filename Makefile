@@ -49,41 +49,42 @@ build-symlinks: bin
 		fi; \
 	done ;
 
-$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL): bin
+$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) ..."
 	GOOS=$(LINUX_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) -ldflags "-extldflags \"-static\"" cmd/integrity/integrity.go
 
-$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM): bin
+$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) ..."
 	GOOS=$(LINUX_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) -ldflags "-extldflags \"-static\"" cmd/integrity/integrity.go
 
-$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL): bin
+$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) ..."
 	GOOS=$(MAC_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM): bin
+$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) ..."
 	GOOS=$(MAC_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
-$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL): bin
+$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) ..."
 	GOOS=$(BSD_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM): bin
+$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM):
 	@echo "Creating $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM) ..."
 	GOOS=$(BSD_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
-build-all: bin build-symlinks $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM)
+build-all: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM)
 
 pkgs:
 	mkdir -p $(PKGS_DIR)
 
-package-all: build-all package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm package-tar-intel package-tar-arm package-slackware-intel package-slackware-arm
+package-all: build-all build-symlinks package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm package-tar-intel package-tar-arm package-slackware-intel package-slackware-arm
 
 package-deb-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).deb ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).deb already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		$(MAKE) package-deb-control && \
 		$(MAKE) package-deb-control-intel && \
 		fpm -s dir -t deb -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
@@ -99,6 +100,7 @@ package-deb-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).deb ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).deb already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		$(MAKE) package-deb-control && \
 		$(MAKE) package-deb-control-arm && \
 		fpm -s dir -t deb -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
@@ -117,6 +119,7 @@ package-rpm-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-1.x86_64.rpm ]; then \
 		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-1.x86_64.rpm already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t rpm -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
@@ -132,6 +135,7 @@ package-rpm-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-1.aarch64.rpm ]; then \
 		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-1.aarch64.rpm already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t rpm -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
@@ -148,6 +152,7 @@ package-apk-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).apk ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).apk already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t apk -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
@@ -163,6 +168,7 @@ package-apk-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).apk ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).apk already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t apk -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
@@ -178,6 +184,7 @@ package-tar-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).tar ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).tar already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t tar -n $(BIN)_$(VERSION)_$(ARCHINTEL) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
@@ -193,6 +200,7 @@ package-tar-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).tar ]; then \
 		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).tar already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
 		fpm -s dir -t tar -n $(BIN)_$(VERSION)_$(ARCHARM) -p pkgs -v $(VERSION) -a $(ARCHARM) \
 		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
 		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
@@ -208,6 +216,8 @@ package-slackware-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHINTEL)-1_GG.tgz ]; then \
 		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHINTEL)-1_GG.tgz already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
+		$(MAKE) build-symlinks && \
 		$(MAKE) package-slackware-info && \
 		cd ./packaging/slackware && \
 		sudo cp makepkg /sbin/makepkg && \
@@ -218,6 +228,8 @@ package-slackware-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
 	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHARM)-1_GG.tgz ]; then \
 		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHARM)-1_GG.tgz already exists"; \
 	else \
+		$(MAKE) build-symlinks && \
+		$(MAKE) build-symlinks && \
 		$(MAKE) package-slackware-info && \
 		cd ./packaging/slackware && \
 		sudo cp makepkg /sbin/makepkg && \
