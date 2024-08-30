@@ -140,8 +140,8 @@ package-tar-arm: build-linux-arm pkgs
 	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
 package-slackware-intel: build-linux-intel pkgs package-slackware-info
+  export PATH="$(pwd)/packaging/slackware/:$PATH" && \
 	cd ./packaging/slackware && \
-	cp makepkg /sbin/makepkg && \
 	ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild
 
 package-slackware-arm: build-linux-intel pkgs package-slackware-info
