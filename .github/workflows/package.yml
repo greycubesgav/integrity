@@ -10,6 +10,9 @@ on:
 
 jobs:
 
+  test:
+    uses: ./.github/workflows/test.yml
+
   build:
     runs-on: ubuntu-latest
     container:
@@ -18,11 +21,6 @@ jobs:
     steps:
     - name: checkout code
       uses: actions/checkout@v4
-
-    - name: Test, build, and package
-      uses: ./.github/workflows/test.yml
-      with:
-        workflow: Test
 
     - name: Build
       run: make build-all
