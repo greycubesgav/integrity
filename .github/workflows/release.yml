@@ -36,6 +36,10 @@ jobs:
         name: integrity_macos_binaries
         path: pkgs/
 
+    - name: Rename macos binary
+      run: |
+        mv pkgs/integrity pkgs/integrity_macos
+
     - name: Display structure of downloaded packages
       run: ls -R pkgs/
 
