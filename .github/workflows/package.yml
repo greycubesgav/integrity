@@ -31,38 +31,6 @@ jobs:
         name: integrity_binaries
         path: bin/integrity*
 
-  package-intel-deb:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-      with:
-        go-version-file: './go.mod'
-    - run: go version
-
-    - name: Install dependencies for ruby
-      run: |
-        sudo apt-get update && sudo apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
-
-    - name: Install fpm package manager
-      run: |
-        gem install fpm
-
-    - name: Extract Version
-      id: get_version
-      run: echo "{VERSION}={$(make show-version)}" >> $GITHUB_OUTPUT
-
-    - name: Package Linux Debian Intel
-      run: make package-deb-intel
-
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: integrity_debian_intel
-        path: pkgs/integrity_*_amd64.deb
-
   package-intel-slackware:
     needs: build
     runs-on: ubuntu-latest
@@ -104,7 +72,7 @@ jobs:
 
     - name: Install fpm package manager
       run: |
-        gem install fpm
+        sudo gem install fpm
 
     - name: Download binaries from buildstep
       uses: actions/download-artifact@v4
