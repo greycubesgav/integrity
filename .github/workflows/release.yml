@@ -1,0 +1,53 @@
+name: Create Release
+
+# Trigger the workflow manually via the GitHub Actions UI
+on:
+
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name'
+        required: true
+        default: 'v1.0.0'
+      release_name:
+        description: 'Release title'
+        required: true
+        default: 'First release'
+      body:
+        description: 'Description of the release'
+        required: false
+        default: 'This is the first release.'
+
+jobs:
+
+  package-all:
+    uses: ./.github/workflows/package.yml
+
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.tag_name }}
+        release_name: ${{ github.event.inputs.release_name }}
+        body: ${{ github.event.inputs.body }}
+        draft: true
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: path/to/your/asset.zip
+        asset_name: your-asset.zip
+        asset_content_type: application/zip
