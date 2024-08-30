@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   build:
+    needs: test
     runs-on: ubuntu-latest
     container:
       image: golang:1.23
@@ -32,6 +33,7 @@ jobs:
         path: bin/integrity*
 
   package-intel-deb:
+    needs: build
     runs-on: ubuntu-latest
     container:
       image: golang:1.23
@@ -61,6 +63,7 @@ jobs:
         path: pkgs/integrity_*_amd64.deb
 
   package-intel-slackware:
+    needs: build
     runs-on: ubuntu-latest
     container:
       image: golang:1.23
