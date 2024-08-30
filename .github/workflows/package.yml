@@ -44,7 +44,7 @@ jobs:
 
     - name: Install dependencies for ruby
       run: |
-        apt-get update && apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
+        sudo apt-get update && sudo apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
 
     - name: Install fpm package manager
       run: |
@@ -76,7 +76,7 @@ jobs:
 
     - name: Install dependencies for ruby
       run: |
-        apt-get update && apt-get install -y binutils squashfs-tools make nodejs
+        sudo apt-get update && sudo apt-get install -y binutils squashfs-tools make nodejs
 
     - name: Package Linux Slackware Intel
       run: make package-slackware-intel
@@ -100,7 +100,7 @@ jobs:
 
     - name: Install dependencies for ruby
       run: |
-        apt-get update && apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
+        sudo apt-get update && sudo apt-get install -y binutils squashfs-tools ruby-full make rpm nodejs
 
     - name: Install fpm package manager
       run: |
