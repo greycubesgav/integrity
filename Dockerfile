@@ -1,7 +1,7 @@
-FROM golang:1.23
+FROM golang:1.20
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y binutils squashfs-tools ruby-full make golang rpm
+RUN apt-get update && apt-get install -y binutils squashfs-tools ruby-full make golang rpm sudo
 
 # Install fpm for package building
 RUN gem install fpm

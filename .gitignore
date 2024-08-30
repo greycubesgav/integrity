@@ -1,6 +1,7 @@
 # Compiled files
 /integrity
 bin/
+pkgs/
 # Packages
 *.deb
 *.rpm

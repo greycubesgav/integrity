@@ -20,6 +20,14 @@ PWD := $(shell pwd)
 all: build
 	@echo "Default target"
 
+clean-bin:
+	rm -rf $(BIN_DIR);
+
+clean-pkgs:
+	rm -rf $(PKGS_DIR);
+
+clean-all: clean-pkgs clean-bin
+
 go-get-all:
 	go get -d ./...
 
@@ -27,127 +35,194 @@ build: bin
 	go build -o bin/integrity cmd/integrity/integrity.go;
 
 bin:
-	mkdir -p $(BIN_DIR)
-
-build-symlinks:
-	ln -sf ./integrity ./bin/integrity.sha1
-	ln -sf ./integrity ./bin/integrity.md5
-	ln -sf ./integrity ./bin/integrity.sha256
-	ln -sf ./integrity ./bin/integrity.sha512
-	ln -sf ./integrity ./bin/integrity.phash
-	ln -sf ./integrity ./bin/integrity.oshash
-
-build-linux-intel: bin build-symlinks
-	@if [ -f "$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL)" ]; then \
-			echo "File exists, skipping step."; \
-	else \
-			echo "File does not exist, running step."; \
-			GOOS=$(LINUX_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) -ldflags "-s -w -extldflags \"-static\"" cmd/integrity/integrity.go; \
+	@if [ ! -d $(BIN_DIR) ]; then \
+	  echo "Creating bin directory at $(BIN_DIR)"; \
+		mkdir -p $(BIN_DIR); \
 	fi
 
-build-linux-arm: bin build-symlinks
+build-symlinks: bin
+	@for checksum in md5 sha1 sha256 sha512 phash oshash; do \
+		link=$(BIN_DIR)/$(BIN).$$checksum; \
+		if [ ! -L "$$link" ]; then \
+			echo "Creating symlink for $$link"; \
+			ln -sf ./$(BIN) $$link; \
+		fi; \
+	done ;
+
+$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) ..."
+	GOOS=$(LINUX_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) -ldflags "-extldflags \"-static\"" cmd/integrity/integrity.go
+
+$(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) ..."
 	GOOS=$(LINUX_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) -ldflags "-extldflags \"-static\"" cmd/integrity/integrity.go
 
-build-darwin-intel: bin build-symlinks
+$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) ..."
 	GOOS=$(MAC_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-build-darwin-arm: bin build-symlinks
+$(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) ..."
 	GOOS=$(MAC_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
-build-bsd-intel: bin build-symlinks
+$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) ..."
 	GOOS=$(BSD_OS) GOARCH=$(ARCHINTEL) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) cmd/integrity/integrity.go;
 
-build-bsd-arm: bin build-symlinks
+$(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM): bin
+	@echo "Creating $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM) ..."
 	GOOS=$(BSD_OS) GOARCH=$(ARCHARM) go build -o $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM) cmd/integrity/integrity.go;
 
-build-all: bin build-symlinks build-linux-intel build-linux-arm build-darwin-intel build-darwin-arm build-bsd-intel build-bsd-arm
+build-all: bin build-symlinks $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(MAC_OS)_$(ARCHARM) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHINTEL) $(BIN_DIR)/$(BIN)_$(BSD_OS)_$(ARCHARM)
 
 pkgs:
 	mkdir -p $(PKGS_DIR)
 
-package-all: package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm package-tar-intel package-tar-arm package-slackware-intel package-slackware-arm
+package-all: build-all package-deb-intel package-deb-arm package-rpm-intel package-rpm-arm package-apk-intel package-apk-arm package-tar-intel package-tar-arm package-slackware-intel package-slackware-arm
 
-package-deb-intel: build-linux-intel pkgs package-deb-control package-deb-control-intel
-	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-deb-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).deb ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).deb already exists"; \
+	else \
+		$(MAKE) package-deb-control && \
+		$(MAKE) package-deb-control-intel && \
+		fpm -s dir -t deb -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+		integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash ;\
+	fi
 
-package-deb-arm: build-linux-arm pkgs package-deb-control package-deb-control-arm
-	fpm -s dir -t deb -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM) --deb-custom-control ./packaging/debian/control  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-deb-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).deb ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).deb already exists"; \
+	else \
+		$(MAKE) package-deb-control && \
+		$(MAKE) package-deb-control-arm && \
+		fpm -s dir -t deb -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
+		--deb-custom-control ./packaging/debian/control --license "$(LICENSE)" \
+		--description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-rpm-intel: build-linux-intel pkgs
-	fpm -s dir -t rpm -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL) --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/ integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-rpm-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-1.x86_64.rpm ]; then \
+		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-1.x86_64.rpm already exists"; \
+	else \
+		fpm -s dir -t rpm -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-rpm-arm: build-linux-arm pkgs
-	fpm -s dir -t rpm -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-rpm-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-1.aarch64.rpm ]; then \
+		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-1.aarch64.rpm already exists"; \
+	else \
+		fpm -s dir -t rpm -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-apk-intel: build-linux-intel pkgs
-	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHINTEL)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
 
-package-apk-arm: build-linux-arm pkgs
-	fpm -s dir -t apk -n integrity -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-apk-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).apk ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).apk already exists"; \
+	else \
+		fpm -s dir -t apk -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-tar-intel: build-linux-intel pkgs
-	fpm -s dir -t tar -n integrity_$(VERSION)_$(ARCHINTEL) -p pkgs -v $(VERSION) -a $(ARCHINTEL)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-apk-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).apk ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).apk already exists"; \
+	else \
+		fpm -s dir -t apk -n $(BIN) -p pkgs -v $(VERSION) -a $(ARCHARM) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-tar-arm: build-linux-arm pkgs
-	fpm -s dir -t tar -n integrity_$(VERSION)_$(ARCHARM) -p pkgs -v $(VERSION) -a $(ARCHARM)  --license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" -C ./bin/  integrity_linux_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
-	integrity.sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
-	integrity.md5=$(INSTALL_LOCATION)/$(BIN).md5 \
-	integrity.sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
-	integrity.sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
-	integrity.phash=$(INSTALL_LOCATION)/$(BIN).phash \
-	integrity.oshash=$(INSTALL_LOCATION)/$(BIN).oshash
+package-tar-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).tar ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHINTEL).tar already exists"; \
+	else \
+		fpm -s dir -t tar -n $(BIN)_$(VERSION)_$(ARCHINTEL) -p pkgs -v $(VERSION) -a $(ARCHINTEL) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHINTEL)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-slackware-intel: build-linux-intel pkgs package-slackware-info
-	cd ./packaging/slackware && \
-	sudo cp makepkg /sbin/makepkg && \
-	sudo ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild
+package-tar-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).tar ]; then \
+		echo "$(PKGS_DIR)/$(BIN)_$(VERSION)_$(ARCHARM).tar already exists"; \
+	else \
+		fpm -s dir -t tar -n $(BIN)_$(VERSION)_$(ARCHARM) -p pkgs -v $(VERSION) -a $(ARCHARM) \
+		--license "$(LICENSE)" --description="$(DESCRIPTION)" -m "$(MAINTAINER)" --url "$(URL)" \
+		-C $(BIN_DIR)/ $(BIN)_$(LINUX_OS)_$(ARCHARM)=$(INSTALL_LOCATION)/$(BIN) \
+		$(BIN).sha1=$(INSTALL_LOCATION)/$(BIN).sha1 \
+		$(BIN).md5=$(INSTALL_LOCATION)/$(BIN).md5 \
+		$(BIN).sha256=$(INSTALL_LOCATION)/$(BIN).sha256 \
+		$(BIN).sha512=$(INSTALL_LOCATION)/$(BIN).sha512 \
+		$(BIN).phash=$(INSTALL_LOCATION)/$(BIN).phash \
+		$(BIN).oshash=$(INSTALL_LOCATION)/$(BIN).oshash; \
+	fi
 
-package-slackware-arm: build-linux-intel pkgs package-slackware-info
-	cd ./packaging/slackware && \
-	sudo cp makepkg /sbin/makepkg && \
-	sudo ARCH='$(ARCHARM)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild
+package-slackware-intel: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHINTEL) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHINTEL)-1_GG.tgz ]; then \
+		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHINTEL)-1_GG.tgz already exists"; \
+	else \
+		$(MAKE) package-slackware-info && \
+		cd ./packaging/slackware && \
+		sudo cp makepkg /sbin/makepkg && \
+		sudo ARCH='$(ARCHINTEL)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild ;\
+	fi
+
+package-slackware-arm: $(BIN_DIR)/$(BIN)_$(LINUX_OS)_$(ARCHARM) pkgs
+	@if [ -f $(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHARM)-1_GG.tgz ]; then \
+		echo "$(PKGS_DIR)/$(BIN)-$(VERSION)-$(ARCHARM)-1_GG.tgz already exists"; \
+	else \
+		$(MAKE) package-slackware-info && \
+		cd ./packaging/slackware && \
+		sudo cp makepkg /sbin/makepkg && \
+		sudo ARCH='$(ARCHARM)' VERSION='$(VERSION)' OUTPUT="$$(pwd)/../../pkgs/" ./integrity.SlackBuild ;\
+	fi
 
 docker-package-slackware-intel: build-linux-intel pkgs docker-build-slackware-image
 	docker cp $(docker create --name tc "greycubesgav/integrity-slackware-build:$(VERSION)"):/tmp/integrity-$(VERSION)-x86_64-1_GG.tgz ./pkgs && docker rm tc
