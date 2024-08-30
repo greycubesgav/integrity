@@ -4,19 +4,9 @@ name: Create Release
 on:
 
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: 'Tag name'
-        required: true
-        default: 'v1.0.0'
-      release_name:
-        description: 'Release title'
-        required: true
-        default: 'First release'
-      body:
-        description: 'Description of the release'
-        required: false
-        default: 'This is the first release.'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
 
@@ -24,30 +14,28 @@ jobs:
     uses: ./.github/workflows/package.yml
 
   create_release:
+    needs: package-all
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Download Packages from package-all step
+      uses: actions/download-artifact@v4
       with:
-        tag_name: ${{ github.event.inputs.tag_name }}
-        release_name: ${{ github.event.inputs.release_name }}
-        body: ${{ github.event.inputs.body }}
-        draft: true
-        prerelease: false
+        name: integrity_packages
+        path: pkgs/
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Display structure of downloaded packages
+      run: ls -R pkgs/
+
+    - name: Create new release and upload packages
+      uses: svenstaro/upload-release-action@v2
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: path/to/your/asset.zip
-        asset_name: your-asset.zip
-        asset_content_type: application/zip
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: pkgs/*
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
+        draft: true
