@@ -22,7 +22,6 @@ jobs:
     - name: Test, build, and package
       uses: ./.github/workflows/test.yml
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
         workflow: Test
 
     - name: Build
