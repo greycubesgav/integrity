@@ -8,3 +8,5 @@ pkgs/
 *.apk
 *.txz
 *.dat
+# Binaries
+integrity.*
