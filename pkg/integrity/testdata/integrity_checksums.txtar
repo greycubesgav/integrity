@@ -3,6 +3,10 @@ exec integrity -a data.dat
 stdout 'data.dat : sha1 : added'
 
  # Verify the sum created
+exec integrity -c data.dat
+stdout 'data.dat : sha1 : PASSED'
+
+ # Verify the sum created
 exec integrity -v data.dat
 stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
 
@@ -59,6 +63,17 @@ exec integrity -a mydir
 # Try to recurse into a dir with no files
 exec integrity -a -r mydir
 
+# Disabled test, when running automated tests unable to set env
+# Set the digest through the Environment
+# exec INTEGRITY_DIGEST=blake2b_256 integrity -a data2.dat
+# stdout 'data2.dat : blake2b_256 : added'
+
+# Disabled test, when running automated tests no binary exists
+# Code is run with inputs
+# Try and add a checksum using a symlinked binary
+#exec integrity.sha1 -a data2.dat"
+#stdout 'data2.dat : sha1 : added'
+
 # add an phash chdcksum
 #exec integrity -a --digest=phash data.dat
 #stdout 'data.dat : phash : added'
@@ -66,3 +81,5 @@ exec integrity -a -r mydir
 
 -- data.dat --
 hello world
+-- data2.dat --
+hello world!!

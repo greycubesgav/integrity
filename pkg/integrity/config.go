@@ -44,56 +44,54 @@ var digestTypes = map[string]crypto.Hash{
 }
 
 type Config struct {
-	ShowHelp             bool
-	ShowVersion          bool
-	ShowInfo             bool
-	Verbose              bool
-	DigestHash           crypto.Hash
-	DigestName           string
-	Action               string
-	DisplayFormat        string
-	Action_Add           bool
-	Action_Delete        bool
-	Action_List          bool
-	Action_Transform     bool
-	Action_Check         bool
-	Option_Force         bool
-	Option_ShortPaths    bool
-	Option_Recursive     bool
-	Option_AllDigests    bool
-	Option_DefaultDigest bool
-	xattribute_fullname  string
-	Xattribute_prefix    string
-	logLevelName         string
-	logObject            *logrus.Logger
-	returnCode           int // used to store a return code for the cmd util
+	ShowHelp            bool
+	ShowVersion         bool
+	ShowInfo            bool
+	Verbose             bool
+	DigestHash          crypto.Hash
+	DigestName          string
+	Action              string
+	DisplayFormat       string
+	Action_Add          bool
+	Action_Delete       bool
+	Action_List         bool
+	Action_Transform    bool
+	Action_Check        bool
+	Option_Force        bool
+	Option_ShortPaths   bool
+	Option_Recursive    bool
+	Option_AllDigests   bool
+	xattribute_fullname string
+	Xattribute_prefix   string
+	logLevelName        string
+	logObject           *logrus.Logger
+	returnCode          int // used to store a return code for the cmd util
 }
 
 func newConfig() *Config {
 	var c *Config = &Config{
-		ShowHelp:             false,
-		ShowVersion:          false,
-		ShowInfo:             false,
-		Action_Check:         false,
-		Action_Add:           false,
-		Action_Delete:        false,
-		Action_List:          false,
-		Action_Transform:     false,
-		Option_Force:         false,
-		Option_ShortPaths:    false,
-		Option_Recursive:     false,
-		Option_AllDigests:    false,
-		Option_DefaultDigest: false,
-		Verbose:              false,
-		DigestHash:           crypto.SHA1,
-		DigestName:           "",
-		DisplayFormat:        "",
-		Action:               "check",
-		xattribute_fullname:  "",
-		Xattribute_prefix:    "",
-		logLevelName:         "info",
-		logObject:            logrus.New(),
-		returnCode:           0,
+		ShowHelp:            false,
+		ShowVersion:         false,
+		ShowInfo:            false,
+		Action_Check:        false,
+		Action_Add:          false,
+		Action_Delete:       false,
+		Action_List:         false,
+		Action_Transform:    false,
+		Option_Force:        false,
+		Option_ShortPaths:   false,
+		Option_Recursive:    false,
+		Option_AllDigests:   false,
+		Verbose:             false,
+		DigestHash:          crypto.SHA1,
+		DigestName:          "",
+		DisplayFormat:       "",
+		Action:              "check",
+		xattribute_fullname: "",
+		Xattribute_prefix:   "",
+		logLevelName:        "info",
+		logObject:           logrus.New(),
+		returnCode:          0,
 	}
 	c.parseCmdlineOpt()
 	return c
@@ -157,15 +155,18 @@ func (c *Config) parseCmdlineOpt() {
 	//-----------------------------------------------------------------------------------------
 	// Workout the digest we are using
 	//-----------------------------------------------------------------------------------------
-	if c.DigestName == "" {
-		// Try and get the digest from the name of the command, this overrides any other setting
-		// other than display formats sha1,md5 etc above
-		// e.g. integrity.sha1, integrity.md5
-		cmdName := filepath.Base(os.Args[0])
-		cmdHash := strings.Split(cmdName, ".")
-		if len(cmdHash) > 1 {
-			c.DigestName = cmdHash[1]
-		} else {
+	// Try and get the digest from the name of the binary, e.g integriy.sha1, integrity.md5
+	// this overrides any other digest setting, other than display formats sha1sum, md5sum etc
+	cmdName := filepath.Base(os.Args[0])
+	if cmdName == "" {
+		c.logObject.Errorf("cmdName is empty, unable to determine the digest from the name of the binary")
+		c.returnCode = 7
+		return
+	}
+	cmdHash := strings.Split(cmdName, ".")
+	if len(cmdHash) < 2 {
+		// We don't have a digest name from the binary name
+		if c.DigestName == "" {
 			// If we haven't been passed a digest name on the command line with --digest=
 			// Try and get it from the environment variable
 			envDigest := os.Getenv(env_name_prefix + "_DIGEST")
@@ -174,11 +175,15 @@ func (c *Config) parseCmdlineOpt() {
 			} else {
 				// If this doesn't work, set it to sha1 as default
 				c.DigestName = "sha1"
-				c.Option_DefaultDigest = true
 			}
 		}
+	} else {
+		c.DigestName = cmdHash[1]
 	}
-	// Check we know the digest type
+
+	//-----------------------------------------------------------------------------------------
+	// Check we know the given digest name
+	//-----------------------------------------------------------------------------------------
 	if c.DigestName != "oshash" && c.DigestName != "phash" {
 		if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
 			fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
@@ -214,12 +219,6 @@ func (c *Config) parseCmdlineOpt() {
 		return
 	}
 
-	//	if c.DisplayFormat != "" && c.DisplayFormat != "sha1sum" && c.DisplayFormat != "md5sum" {
-	//		fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
-	//		c.returnCode = 4
-	//		return
-	//	}
-
 	//-----------------------------------------------------------------------------------------
 	// Return error of no arguments are given
 	//-----------------------------------------------------------------------------------------
@@ -247,7 +246,7 @@ func (c *Config) parseCmdlineOpt() {
 
 	// Display actions list sha1 and md5, overwrite the action and digest type
 	if c.DisplayFormat != "" {
-		// If user has asked for display format, override action and digest type
+		// If user has asked for display format, override action to list and digest type to the chosen list type
 		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
 		c.Action = "list"
 		switch c.DisplayFormat {
