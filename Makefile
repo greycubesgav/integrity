@@ -18,7 +18,6 @@ PWD := $(shell pwd)
 .PHONY: build build-debug test install clean release version docker-build-image docker-build-image
 
 all: build
-	@echo "Default target"
 
 clean-bin:
 	rm -rf $(BIN_DIR);
