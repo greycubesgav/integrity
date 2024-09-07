@@ -48,6 +48,8 @@ type Config struct {
 	ShowVersion         bool
 	ShowInfo            bool
 	Verbose             bool
+	Quiet               bool
+	VerboseLevel        int
 	DigestHash          crypto.Hash
 	DigestName          string
 	Action              string
@@ -83,6 +85,8 @@ func newConfig() *Config {
 		Option_Recursive:    false,
 		Option_AllDigests:   false,
 		Verbose:             false,
+		Quiet:               false,
+		VerboseLevel:        1,
 		DigestHash:          crypto.SHA1,
 		DigestName:          "",
 		DisplayFormat:       "",
@@ -110,13 +114,22 @@ func (c *Config) parseCmdlineOpt() {
 	getopt.FlagLong(&c.Action_Transform, "fix-old", 0, "fix an old extended attribute value name to the current format")
 	getopt.FlagLong(&c.Option_AllDigests, "all", 'x', "include all digests, not just the default digest. Only applies to --delete and --list options")
 	getopt.FlagLong(&c.Option_Force, "force", 'f', "force the calculation and writing of a checksum even if one already exists (default behaviour is to skip files with checksums already stored)")
-	getopt.FlagLong(&c.Verbose, "verbose", 'v', "set verbose output.")
+	getopt.FlagLong(&c.Verbose, "verbose", 'v', "output more information.")
+	getopt.FlagLong(&c.Quiet, "quiet", 'q', "output less information.")
 	getopt.FlagLong(&c.logLevelName, "loglevel", 0, "set the logging level. One of: panic, fatal, error, warn, info, debug, trace.")
 	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available)")
 	getopt.FlagLong(&c.Option_ShortPaths, "short-paths", 's', "show only file name when showing file names, useful for generating sha1sum files")
 	getopt.FlagLong(&c.Option_Recursive, "recursive", 'r', "recurse into sub-directories")
 	getopt.FlagLong(&c.DisplayFormat, "display-format", 0, "set the output display format (sha1sum, md5sum). Note: this only shows any checkfiles ")
 	getopt.Parse()
+
+	if c.Quiet {
+		c.VerboseLevel = 0
+	} else if c.Verbose {
+		c.VerboseLevel = 2
+	} else {
+		c.VerboseLevel = 1
+	}
 
 	if c.logLevelName == "trace" {
 		c.logObject.SetLevel(logrus.TraceLevel)
@@ -215,6 +228,7 @@ func (c *Config) parseCmdlineOpt() {
 		fmt.Printf("integrity version: %s\n", integrity_version)
 		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
 		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
+		fmt.Printf("integrity verbose level: %d\n", c.VerboseLevel)
 		c.returnCode = 1
 		return
 	}

@@ -69,7 +69,10 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 		if err != nil {
 			var errorString string = err.Error()
 			if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
-				if config.Verbose {
+				switch config.VerboseLevel {
+				case 0:
+					// Don't print anything we're 'quiet'
+				case 1, 2:
 					fmt.Printf("%s : Didn't find old attribute: %s\n", currentFile.fullpath, oldAttribute)
 				}
 			} else {
@@ -81,7 +84,10 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 			// We must have found an old attribute
 			found = true
 
-			if config.Verbose {
+			switch config.VerboseLevel {
+			case 0, 1:
+				// Don't print anything we're 'quiet'
+			case 2:
 				fmt.Printf("%s : Found old attribute [%s] : Setting new attribute: [%s]\n", currentFile.fullpath, oldAttribute, config.xattribute_fullname)
 			}
 
@@ -231,7 +237,7 @@ func integ_checkChecksum(currentFile *integrity_fileCard) error {
 	}
 	//xtattrbChecksum= "tiger";
 	if currentFile.checksum != xtattrbChecksum {
-		return fmt.Errorf("%s : Calculated checksum and filesystem read checksum differ!\n ├── xatr; [%s]\n └── calc; [%s]", currentFile.fullpath, xtattrbChecksum, currentFile.checksum)
+		return fmt.Errorf("Calculated checksum and filesystem read checksum differ!\n ├── stored [%s]\n └── calc'd [%s]", xtattrbChecksum, currentFile.checksum)
 	}
 
 	if err = integ_confirmChecksum(currentFile, currentFile.checksum); err != nil {
@@ -246,10 +252,13 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 	if err = integ_getChecksum(currentFile); err != nil {
 		var errorString string = err.Error()
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
-			if config.Verbose {
-				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
-			} else {
+			switch config.VerboseLevel {
+			case 0:
+				// Don't print anything we're 'quiet'
+			case 1:
 				fmt.Printf("%s : %s : [none]\n", fileDisplayPath, config.DigestName)
+			case 2:
+				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
 			}
 		} else {
 			fmt.Printf("%s : Error : %s\n", fileDisplayPath, err.Error())
@@ -343,15 +352,26 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				var hadAttribute bool
 				hadAttribute, err = integ_removeChecksum(&currentFile)
 				if err != nil {
-					if config.Verbose {
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+						// Does this make sense here? Do we want to still print this error if we're 'quiet'?
+					case 1, 2:
 						fmt.Printf("%s : %s : Error removing checksum: %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 				} else if !hadAttribute {
-					if config.Verbose {
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+						// Does this make sense here? Do we want to still print this error if we're 'quiet'?
+					case 1, 2:
 						fmt.Printf("%s : %s : no attribute\n", fileDisplayPath, config.DigestName)
 					}
 				} else {
-					if config.Verbose {
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+					case 1, 2:
 						fmt.Printf("%s : %s : removed\n", fileDisplayPath, config.DigestName)
 					}
 				}
@@ -362,30 +382,44 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				var haveDigestStored bool
 				haveDigestStored, err = integ_testChecksumStored(&currentFile)
 				if err != nil {
-					if config.Verbose {
-						fmt.Printf("%s : FAILED : Error testing for stored checksum; %s\n", fileDisplayPath, err.Error())
-					} else {
+					switch config.VerboseLevel {
+					case 0, 1:
 						fmt.Printf("%s : FAILED\n", fileDisplayPath)
+					case 2:
+						fmt.Printf("%s : FAILED : Error testing for existing checksum; %s\n", fileDisplayPath, err.Error())
 					}
 					return nil
 				} else if haveDigestStored {
-					fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+					case 1:
+						fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
+					case 2:
+						fmt.Printf("%s : %s : We already have a checksum stored, skipped\n", fileDisplayPath, config.DigestName)
+					}
 					return nil
 				}
 			}
 
 			// If we've reached here we must want to add the checksum
 			if err = integ_addChecksum(&currentFile); err != nil {
-				if config.Verbose {
-					fmt.Printf("%s : %s : Error : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
-				} else {
+				switch config.VerboseLevel {
+				case 0:
 					fmt.Printf("%s : FAILED\n", fileDisplayPath)
+				case 1:
+					fmt.Printf("%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+				case 2:
+					fmt.Printf("%s : %s : FAILED : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
 				}
 			} else {
-				if config.Verbose {
-					fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-				} else {
+				switch config.VerboseLevel {
+				case 0:
+					// Don't print anything we're 'quiet'
+				case 1:
 					fmt.Printf("%s : %s : added\n", fileDisplayPath, currentFile.digest_name)
+				case 2:
+					fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
 				}
 			}
 
@@ -397,35 +431,58 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			} else {
 				if haveDigestStored {
 					if err = integ_checkChecksum(&currentFile); err != nil {
-						if config.Verbose {
-							fmt.Printf("Error checking checksum; %s\n", err.Error())
-						} else {
+						// Here needs replaced with one
+						switch config.VerboseLevel {
+						case 0:
 							fmt.Printf("%s : FAILED\n", fileDisplayPath)
+						case 1:
+							fmt.Printf("%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+						case 2:
+							fmt.Printf("%s : %s : FAILED : %s\n", config.DigestName, fileDisplayPath, err.Error())
 						}
 					} else {
-						if config.Verbose {
-							fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-						} else {
+						switch config.VerboseLevel {
+						case 0:
+							// Don't print anything we're 'quiet'
+						case 1:
 							fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+						case 2:
+							fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
 						}
 					}
 				} else {
-					if config.Verbose {
-						fmt.Printf("%s : %s : no checksum, skipped\n", fileDisplayPath, config.DigestName)
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+					case 1:
+						fmt.Printf("%s : No checksum\n", fileDisplayPath)
+					case 2:
+						fmt.Printf("%s : %s : No checksum, skipped\n", fileDisplayPath, config.DigestName)
 					}
 					return nil
 				}
 			}
+
 		case "transform":
 			if err = integ_swapXattrib(&currentFile); err != nil {
 				errorString := err.Error()
 				if strings.Contains(errorString, "No old attributes found") {
-					fmt.Printf("%s : %s : SKIPPED\n", fileDisplayPath, config.xattribute_fullname)
+					switch config.VerboseLevel {
+					case 0:
+						// Don't print anything we're 'quiet'
+					case 1:
+						fmt.Printf("%s : %s : SKIPPED\n", fileDisplayPath, currentFile.digest_name)
+					case 2:
+						fmt.Printf("%s : %s : SKIPPED : No old attributes found\n", fileDisplayPath, currentFile.digest_name)
+					}
 				} else {
-					if config.Verbose {
-						fmt.Printf("Error rename checksum; %s\n", err.Error())
-					} else {
-						fmt.Printf("%s : FAILED\n", fileDisplayPath)
+					switch config.VerboseLevel {
+					case 0:
+						fmt.Printf("%s : ERROR\n", fileDisplayPath)
+					case 1:
+						fmt.Printf("%s : %s : ERROR : Error renaming checksum\n", fileDisplayPath, currentFile.digest_name)
+					case 2:
+						fmt.Printf("%s : %s : ERROR : Error renaming checksum : %s\n", fileDisplayPath, currentFile.digest_name, err.Error())
 					}
 				}
 			} else {

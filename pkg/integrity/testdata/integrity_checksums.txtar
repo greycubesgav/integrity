@@ -24,16 +24,28 @@ stdout 'data.dat : sha1 : skipped'
 
  # Update the file and try and verify
 exec bash -c 'echo tiger > data.dat'
+exec integrity --digest=sha1 data.dat
+stdout 'data.dat : sha1 : FAILED'
+
 exec integrity -v --digest=sha1 data.dat
-stdout 'Error checking checksum; data.dat : Calculated checksum and filesystem read checksum differ!'
+stdout 'Error checking checksum sha1 on file data.dat ; Calculated checksum and filesystem read checksum differ!'
+
 
 # try and remove the checksum
-exec integrity -d --digest=sha1 data.dat
+exec integrity -d -q --digest=sha1 data.dat
 ! stdout .
 
-# verify the checksum has been removed
+# verify the checksum has been removed - verbose
 exec integrity -v --digest=sha1 data.dat
-stdout 'data.dat : sha1 : no checksum, skipped'
+cmp stdout check_missing_checksum_sha1_verbose.txt
+
+# verify the checksum has been removed - normal
+exec integrity --digest=sha1 data.dat
+cmp stdout check_missing_checksum_sha1.txt
+
+# verify the checksum has been removed - quiet
+exec integrity -q --digest=sha1 data.dat
+cmp stdout check_missing_checksum_sha1_quiet.txt
 
 # add an ohash checksum
 exec integrity -a --digest=oshash data.dat
@@ -83,3 +95,13 @@ exec integrity -a -r mydir
 hello world
 -- data2.dat --
 hello world!!
+-- check_missing_checksum_sha1_verbose.txt --
+data.dat : sha1 : No checksum, skipped
+-- check_missing_checksum_sha1_quiet.txt --
+-- check_missing_checksum_sha1.txt --
+data.dat : No checksum
+-- add_existing_checksum_sha1_verbose.txt --
+data.dat : sha1 : We already have a checksum stored, skipped
+-- add_existing_checksum_sha1_quiet.txt --
+-- add_existing_checksum_sha1.txt --
+data.dat : sha1 : skipped

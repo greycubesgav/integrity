@@ -1,6 +1,14 @@
-# Try and read a checksum that doesn't exist yet
+# Try and read a checksum that doesn't exist yet - normally
+exec integrity -l --digest=md5 --loglevel=debug data_list.dat
+stdout 'data_list.dat : md5 : \[none\]'
+
+# Try and read a checksum that doesn't exist yet - verbosly
 exec integrity -l -v --digest=md5 --loglevel=debug data_list.dat
 stdout 'data_list\.dat : md5 : \[no checksum stored in (user.)*integrity.md5]'
+
+# Try and output a checksum that doesn't exist yet - quietly
+exec integrity -l -q --digest=md5 --loglevel=debug data_list.dat
+stdout ''
 
 # Try and add a checksum to a new file debug
 exec integrity -a --digest=sha1 --loglevel=debug data_list.dat
