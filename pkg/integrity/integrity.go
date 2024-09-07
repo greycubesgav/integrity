@@ -235,11 +235,9 @@ func integ_checkChecksum(currentFile *integrity_fileCard) error {
 	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath); err != nil {
 		return err
 	}
-	//xtattrbChecksum= "tiger";
 	if currentFile.checksum != xtattrbChecksum {
-		return fmt.Errorf("Calculated checksum and filesystem read checksum differ!\n ├── stored [%s]\n └── calc'd [%s]", xtattrbChecksum, currentFile.checksum)
+		return fmt.Errorf("calculated checksum and filesystem read checksum differ!\n ├── stored [%s]\n └── calc'd [%s]", xtattrbChecksum, currentFile.checksum)
 	}
-
 	if err = integ_confirmChecksum(currentFile, currentFile.checksum); err != nil {
 		return err
 	}
@@ -251,6 +249,7 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 	var err error
 	if err = integ_getChecksum(currentFile); err != nil {
 		var errorString string = err.Error()
+		// Two different errors can be returned depending on the OS
 		if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 			switch config.VerboseLevel {
 			case 0:
@@ -273,11 +272,10 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 			if strings.HasPrefix(currentFile.digest_name, "md5") {
 				fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
 			}
-		} else if config.Verbose || config.Option_AllDigests {
-			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
 		} else {
-			fmt.Printf("%s : %s\n", fileDisplayPath, currentFile.checksum)
+			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
 		}
+
 	}
 	return nil
 }
@@ -431,7 +429,6 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			} else {
 				if haveDigestStored {
 					if err = integ_checkChecksum(&currentFile); err != nil {
-						// Here needs replaced with one
 						switch config.VerboseLevel {
 						case 0:
 							fmt.Printf("%s : FAILED\n", fileDisplayPath)
@@ -453,9 +450,13 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				} else {
 					switch config.VerboseLevel {
 					case 0:
-						// Don't print anything we're 'quiet'
+						// Musing: is it an 'error' if we don't have a checksum?
+						// Answer: "no" We have 2 states for no output during check,
+						// The file has a checksum and it is correct or it doesn't have a checksum
+						// The assumption here is if we are quiet and don't have a checksum the file
+						// Isn't important enough to check
 					case 1:
-						fmt.Printf("%s : No checksum\n", fileDisplayPath)
+						fmt.Printf("%s : %s : No checksum\n", fileDisplayPath, config.DigestName)
 					case 2:
 						fmt.Printf("%s : %s : No checksum, skipped\n", fileDisplayPath, config.DigestName)
 					}
@@ -486,7 +487,14 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					}
 				}
 			} else {
-				fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, config.xattribute_fullname)
+				switch config.VerboseLevel {
+				case 0:
+					// Don't print anything we're 'quiet'
+				case 1:
+					fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name)
+				case 2:
+					fmt.Printf("%s : %s : Renamed old integrity attribute\n", fileDisplayPath, config.xattribute_fullname)
+				}
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)
@@ -519,8 +527,14 @@ func Run() int {
 		pathStat, err := os.Stat(path)
 		// If we can stat the given file
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[%s] Error : there was an issue reading from this file\n└── %s\n", path, err)
-			config.returnCode = 10
+			var errorString string = err.Error()
+			if strings.Contains(errorString, "no such file or directory") {
+				fmt.Fprintf(os.Stderr, "%s : no such file or directory\n", path)
+				config.returnCode = 10
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "%s : ERROR : %s\n", path, err)
+			config.returnCode = 12
 			continue
 		}
 
@@ -534,7 +548,10 @@ func Run() int {
 					return 1
 				}
 			} else {
-				if config.Verbose {
+				switch config.VerboseLevel {
+				case 0, 1:
+					// Don't print anything we're 'quiet' / this is not an error
+				case 2:
 					fmt.Printf("%s : skipping directory\n", path)
 				}
 			}

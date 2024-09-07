@@ -199,8 +199,8 @@ func (c *Config) parseCmdlineOpt() {
 	//-----------------------------------------------------------------------------------------
 	if c.DigestName != "oshash" && c.DigestName != "phash" {
 		if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
-			fmt.Fprintf(os.Stderr, "Error : unknown hash type '%s'\n", c.DigestName)
-			c.logObject.Errorf("Error : unknown hash type '%s'\n", c.DigestName)
+			fmt.Fprintf(os.Stderr, "Error : unknown digest type '%s'\n", c.DigestName)
+			//c.logObject.Errorf("Error : unknown hash type '%s'\n", c.DigestName)
 			c.returnCode = 2
 			return
 		}

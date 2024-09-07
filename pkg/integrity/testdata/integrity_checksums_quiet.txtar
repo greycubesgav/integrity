@@ -1,0 +1,50 @@
+#--------------------------------------------------------------
+# Quiet Output Tests
+# Quiet should only output errors, any successful actions
+# don't product any output
+#--------------------------------------------------------------
+# Try and add a checksum to a new file - quiet output
+exec integrity -q -a data.dat
+! stdout .
+
+ # Verify the sum created and valid- quiet output
+exec integrity -q -c data.dat
+! stdout .
+
+# List the checksum - quiet output
+exec integrity -q -l data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+
+# List a non-existing checksum - quiet output
+exec integrity -q --digest=sha256 -l data.dat
+! stdout .
+
+# Try and add a checksum on top - not an error - quiet output
+exec integrity -q -a data.dat
+! stdout .
+
+ # Update the file contents and verify file difference is detected
+exec bash -c 'echo tiger > data.dat'
+exec integrity -q -c data.dat
+stdout 'data.dat : FAILED'
+
+# Try and remove the checksum - quiet output
+exec integrity -q -d data.dat
+! stdout .
+
+ # Verify the sum has been removed - quiet output
+exec integrity -q -c data.dat
+! stdout .
+
+# Try and add a 'none' digest type
+! exec integrity -q -a --digest=none data.dat
+cmp stderr unknown-digest.txt
+
+# Try to add checksum to missing file
+! exec integrity -a missing.dat
+stderr 'missing.dat : no such file or directory'
+
+-- data.dat --
+hello world
+-- unknown-digest.txt --
+Error : unknown digest type 'none'

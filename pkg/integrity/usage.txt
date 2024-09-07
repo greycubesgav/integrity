@@ -129,7 +129,6 @@ Design Choices:
        List the default digest (sha1) data
 
 Supported Checksum Digest Algorithms:
-
     * md4
     * md5
     * sha1
@@ -148,6 +147,9 @@ Supported Checksum Digest Algorithms:
     * blake2b_256
     * blake2b_384
     * blake2b_512
-    * oshash : media hashing algorithm as defined by opensubtitles (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
-    * phash : perceptive image hash algorithm (Through https://github.com/corona10/goimagehash, see: https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html)
+    * oshash : media hashing algorithm as defined by opensubtitles
+       (see: https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes)
+    * phash : perceptive image hash algorithm
+       (Through https://github.com/corona10/goimagehash,
+       see: https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html)
 

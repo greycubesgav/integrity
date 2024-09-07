@@ -1,51 +1,12 @@
-# Try and add a checksum to a new file
-exec integrity -a data.dat
-stdout 'data.dat : sha1 : added'
-
- # Verify the sum created
-exec integrity -c data.dat
-stdout 'data.dat : sha1 : PASSED'
-
- # Verify the sum created
-exec integrity -v data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
-
-# Try and add a sha1 checksum to a new file
-exec integrity -a --digest=sha256 data.dat
-stdout 'data.dat : sha256 : added'
+#--------------------------------------------------------------
+# Different Digest Tests
+# Try and add a sha256 checksum to a file
+exec integrity -v -a --digest=sha256 data.dat
+stdout 'data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : added'
 
  # Verify the sum created
 exec integrity -v --digest=sha256 data.dat
 stdout 'data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : PASSED'
-
-# try and add a new checksum on top
-exec integrity -a --digest=sha1 data.dat
-stdout 'data.dat : sha1 : skipped'
-
- # Update the file and try and verify
-exec bash -c 'echo tiger > data.dat'
-exec integrity --digest=sha1 data.dat
-stdout 'data.dat : sha1 : FAILED'
-
-exec integrity -v --digest=sha1 data.dat
-stdout 'Error checking checksum sha1 on file data.dat ; Calculated checksum and filesystem read checksum differ!'
-
-
-# try and remove the checksum
-exec integrity -d -q --digest=sha1 data.dat
-! stdout .
-
-# verify the checksum has been removed - verbose
-exec integrity -v --digest=sha1 data.dat
-cmp stdout check_missing_checksum_sha1_verbose.txt
-
-# verify the checksum has been removed - normal
-exec integrity --digest=sha1 data.dat
-cmp stdout check_missing_checksum_sha1.txt
-
-# verify the checksum has been removed - quiet
-exec integrity -q --digest=sha1 data.dat
-cmp stdout check_missing_checksum_sha1_quiet.txt
 
 # add an ohash checksum
 exec integrity -a --digest=oshash data.dat
@@ -57,7 +18,7 @@ stdout 'data.dat : blake2b_256 : added'
 
 # check the blake2b_256 checksum
 exec integrity -v --digest=blake2b_256 data.dat
-stdout 'data.dat : blake2b_256 : 6114a760f9052e0947b6d25dafe7a610b002e5da3f87d2680746c39d2e52ca8c : PASSED'
+stdout 'data.dat : blake2b_256 : c71b05fd1d1c7bf7e928ff18e58db5193e9316416cc26ba9cc9094da80d7011e : PASSED'
 
 # add an none checksum, output error
 ! exec integrity -a --digest=none data.dat

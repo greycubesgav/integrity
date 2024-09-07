@@ -1,0 +1,48 @@
+#--------------------------------------------------------------
+# Normal Output Tests
+#--------------------------------------------------------------
+# Try and add a checksum to a new file - normal output
+exec integrity -a data.dat
+stdout 'data.dat : sha1 : added'
+
+# Verify the sum created and valid - normal output
+exec integrity -c data.dat
+stdout 'data.dat : sha1 : PASSED'
+
+# List the checksum - normal output
+exec integrity -l data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+
+# List a non-existing checksum - normal output
+exec integrity --digest=sha256 -l data.dat
+stdout 'data.dat : sha256 : \[none\]'
+
+# Try and add a new checksum on top
+exec integrity -a data.dat
+stdout 'data.dat : sha1 : skipped'
+
+# Update the file contents and verify file difference is detected
+exec bash -c 'echo tiger > data.dat'
+exec integrity -c data.dat
+stdout 'data.dat : sha1 : FAILED'
+
+# Try and remove the checksum - normal output
+exec integrity -d data.dat
+stdout 'data.dat : sha1 : removed'
+
+# Verify the sum has been removed - normal output
+exec integrity -c data.dat
+stdout 'data.dat : sha1 : No checksum'
+
+# Try and add a 'none' digest type
+! exec integrity -a --digest=none data.dat
+cmp stderr unknown-digest.txt
+
+# Try to add checksum to missing file
+! exec integrity -a missing.dat
+stderr 'missing.dat : no such file or directory'
+
+-- data.dat --
+hello world
+-- unknown-digest.txt --
+Error : unknown digest type 'none'

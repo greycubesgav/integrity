@@ -1,0 +1,53 @@
+#--------------------------------------------------------------
+# Verbose Output Tests
+# Verbose should product an output for all actions
+#--------------------------------------------------------------
+# Try and add a checksum to a new file - verbose output
+exec integrity -v -a data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : added'
+
+# Verify the sum created and valid - verbose output
+exec integrity -v -c data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
+
+# List the checksum - normal output
+exec integrity -v -l data.dat
+stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+
+# List a non-existing checksum - normal output
+exec integrity -v --digest=sha256 -l data.dat
+stdout 'data.dat : sha256 : \[no checksum stored in (user.)*integrity.sha256\]'
+
+# Try and add a checksum on top - verbose output
+exec integrity -v -a data.dat
+stdout 'data.dat : sha1 : We already have a checksum stored, skipped'
+
+ # Update the file contents and verify file difference is detected
+exec bash -c 'echo tiger > data.dat'
+exec integrity -v -c data.dat
+cmp stdout check_differ_checksums.txt
+
+# try and remove the checksum - verbose output
+exec integrity -v -d data.dat
+stdout 'data.dat : sha1 : removed'
+
+# Verify the sum removed - verbose output
+exec integrity -v -c data.dat
+stdout 'data.dat : sha1 : No checksum, skipped'
+
+# Try and add a 'none' digest type
+! exec integrity -q -a --digest=none data.dat
+cmp stderr unknown-digest.txt
+
+# Try to add checksum to missing file
+! exec integrity -v -a missing.dat
+stderr 'missing.dat : no such file or directory'
+
+-- data.dat --
+hello world
+-- check_differ_checksums.txt --
+sha1 : data.dat : FAILED : calculated checksum and filesystem read checksum differ!
+ ├── stored [22596363b3de40b06f981fb85d82312e8c0ed511]
+ └── calc'd [e03f0c8aed5365d6de94ba625df38201b5a1fead]
+-- unknown-digest.txt --
+Error : unknown digest type 'none'
