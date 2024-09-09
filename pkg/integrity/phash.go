@@ -23,10 +23,13 @@ func integrityPhashFromFile(filePath string) (string, error) {
 	fileSize := int64(fi.Size())
 
 	if fileSize == 0 {
-		return "", nil
+		return "", fmt.Errorf("filesize is zero")
 	}
 
-	img1, _ := jpeg.Decode(f)
+	img1, err := jpeg.Decode(f)
+	if err != nil {
+		return "", err
+	}
 	pHash, err := goimagehash.PerceptionHash(img1)
 	if err != nil {
 		return "", err
