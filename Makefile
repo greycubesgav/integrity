@@ -294,5 +294,8 @@ test-make-data.dat:
 test-github-package:
 	act push -j package
 
+test-github-test:
+	act push -j test
+
 show-version:
 	@echo $(VERSION)
