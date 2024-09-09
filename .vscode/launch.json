@@ -39,5 +39,17 @@
                 "-aq", "../../data.dat"
             ]
         },
+        {
+            "name": "integrity - list md5sum",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "cmd/integrity/integrity.go",
+            "args": [
+                "--loglevel", "debug",
+                "--display-format", "md5sum",
+                "../../data.dat"
+            ]
+        },
     ]
 }
