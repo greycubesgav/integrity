@@ -505,6 +505,7 @@ func Run() int {
 
 	for _, path := range getopt.Args() {
 
+		// ToDo: Consider how to deal with symlinks, should be follow them?
 		pathStat, err := os.Stat(path)
 		// If we can stat the given file
 		if err != nil {
