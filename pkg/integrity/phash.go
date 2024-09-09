@@ -2,9 +2,10 @@ package integrity
 
 import (
 	"fmt"
-	"github.com/corona10/goimagehash"
 	"image/jpeg"
 	"os"
+
+	"github.com/corona10/goimagehash"
 )
 
 func integrityPhashFromFile(filePath string) (string, error) {
@@ -26,6 +27,11 @@ func integrityPhashFromFile(filePath string) (string, error) {
 	}
 
 	img1, _ := jpeg.Decode(f)
-	pHash, _ := goimagehash.PerceptionHash(img1)
-	return fmt.Sprintf("%016x", pHash.GetHash()), nil
+	pHash, err := goimagehash.PerceptionHash(img1)
+	if err != nil {
+		return "", err
+	} else {
+		return fmt.Sprintf("%016x", pHash.GetHash()), nil
+	}
+
 }
