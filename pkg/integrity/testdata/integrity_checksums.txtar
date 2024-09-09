@@ -36,6 +36,20 @@ exec integrity -a mydir
 # Try to recurse into a dir with no files
 exec integrity -a -r mydir
 
+# Try to add a checksum to a symlink
+exec ln -s data3.dat symlink.dat
+exec integrity -a -v symlink.dat
+stdout 'symlink.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d : added'
+
+# Check if we have updated the original
+exec integrity -l -v data3.dat
+stdout 'data3.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d'
+
+# Try to add a checksum to a file of size 0
+exec touch data0.dat
+exec integrity -a -v data0.dat
+stdout 'data0.dat : sha1 : da39a3ee5e6b4b0d3255bfef95601890afd80709 : added'
+
 # Disabled test, when running automated tests unable to set env
 # Set the digest through the Environment
 # exec INTEGRITY_DIGEST=blake2b_256 integrity -a data2.dat
@@ -56,6 +70,8 @@ exec integrity -a -r mydir
 hello world
 -- data2.dat --
 hello world!!
+-- data3.dat --
+hello world! Symlinked
 -- check_missing_checksum_sha1_verbose.txt --
 data.dat : sha1 : No checksum, skipped
 -- check_missing_checksum_sha1_quiet.txt --
