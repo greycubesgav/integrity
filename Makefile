@@ -304,8 +304,14 @@ test-github-test:
 show-version:
 	@echo $(VERSION)
 
-create-tag:
+git-create-tag:
 	git tag -a v$(VERSION) -m "v$(VERSION)"
 
-push-tag:
+git-push-tag:
 	git push origin v$(VERSION)
+
+git-version-push:
+  git add pkg/integrity/version.go
+	git commit -m ":bookmark: Updated to version v$(VERSION)"
+	$(MAKE) git-create-tag
+	$(MAKE) git-push-tag
