@@ -1,6 +1,10 @@
 #--------------------------------------------------------------
 # Normal Output Tests
 #--------------------------------------------------------------
+# Try and list a checksum on a new file - normal output
+exec integrity -l data.dat
+stdout 'data.dat : sha1 : \[none\]'
+
 # Try and add a checksum to a new file - normal output
 exec integrity -a data.dat
 stdout 'data.dat : sha1 : added'

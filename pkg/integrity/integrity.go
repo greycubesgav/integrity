@@ -212,11 +212,7 @@ func integ_confirmChecksum(currentFile *integrity_fileCard, testChecksum string)
 		return err
 	}
 	if testChecksum != xtattrbChecksum {
-		fmt.Fprintf(os.Stderr, "%s : Calculated checksum and filesystem read checksum differ!\n", currentFile.fullpath)
-		fmt.Fprintf(os.Stderr, " ├── xatr; [%s]\n", xtattrbChecksum)
-		fmt.Fprintf(os.Stderr, " └── calc; [%s]\n", testChecksum)
-		//ToDo: Define new error
-		return err
+		return fmt.Errorf("calculated checksum and filesystem read checksum differ!\n ├── stored [%s]\n └── calc'd [%s]", xtattrbChecksum, currentFile.checksum)
 	}
 	currentFile.digest_name = config.DigestName
 	return nil
@@ -224,17 +220,12 @@ func integ_confirmChecksum(currentFile *integrity_fileCard, testChecksum string)
 
 func integ_checkChecksum(currentFile *integrity_fileCard) error {
 	var err error
-	var xtattrbChecksum string
-
+	// Generate the checksum from the file contents
+	// Stores the generated checksum in currentFile.checksum
 	if err = integ_generateChecksum(currentFile); err != nil {
 		return err
 	}
-	if xtattrbChecksum, err = integ_getChecksumRaw(currentFile.fullpath); err != nil {
-		return err
-	}
-	if currentFile.checksum != xtattrbChecksum {
-		return fmt.Errorf("calculated checksum and filesystem read checksum differ!\n ├── stored [%s]\n └── calc'd [%s]", xtattrbChecksum, currentFile.checksum)
-	}
+	// Check the checksum using the current file and the checksum just generated previously
 	if err = integ_confirmChecksum(currentFile, currentFile.checksum); err != nil {
 		return err
 	}
@@ -257,7 +248,13 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
 			}
 		} else {
-			fmt.Printf("%s : Error : %s\n", fileDisplayPath, err.Error())
+			switch config.VerboseLevel {
+			case 0, 1:
+				// Always output errors if we're 'quiet'
+				fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+			case 2:
+				fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error reading checksum : %s\n", fileDisplayPath, config.DigestName, err.Error())
+			}
 			return err
 		}
 	} else {
@@ -408,7 +405,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					case 0, 1:
 						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
 					case 2:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : failed checking if checksum was stored %s\n", config.DigestName, fileDisplayPath, err.Error())
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : failed checking if checksum was stored %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 					return nil
 				} else {
@@ -418,7 +415,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 							case 0, 1:
 								fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
 							case 2:
-								fmt.Fprintf(os.Stderr, "%s : %s : FAILED : %s\n", config.DigestName, fileDisplayPath, err.Error())
+								fmt.Fprintf(os.Stderr, "%s : %s : FAILED : %s\n", fileDisplayPath, config.DigestName, err.Error())
 							}
 						} else {
 							switch config.VerboseLevel {

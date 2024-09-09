@@ -3,6 +3,10 @@
 # Quiet should only output errors, any successful actions
 # don't product any output
 #--------------------------------------------------------------
+# Try and list a checksum on a new file - normal output
+exec integrity -q -l data.dat
+! stdout .
+
 # Try and add a checksum to a new file - quiet output
 exec integrity -q -a data.dat
 ! stdout .
@@ -58,6 +62,11 @@ stderr 'unreadable.dat : sha1 : FAILED'
 # Try to check checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -q -c unreadable.dat
+stderr 'unreadable.dat : sha1 : FAILED'
+
+# Try to list checksum of a unreadable file
+exec chmod 000 unreadable.dat
+exec integrity -q -l unreadable.dat
 stderr 'unreadable.dat : sha1 : FAILED'
 
 # Try to delete a checksum to unreadable file
