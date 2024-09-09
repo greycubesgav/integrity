@@ -288,6 +288,10 @@ test-add-linux-attr:
 test-list-linux-attr:
 	getfattr -d data.dat
 
+test-phash:
+	./bin/integrity.phash -afv pkg/integrity/testdata/jpeg-sml.jpeg
+	@echo "pkg/integrity/testdata/jpeg-sml.jpeg : phash : 8000000000000000 : added"
+
 test-make-data.dat:
 	echo 'hello world' > data.dat
 
