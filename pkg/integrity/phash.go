@@ -2,35 +2,61 @@ package integrity
 
 import (
 	"fmt"
-	"image/jpeg"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"io"
 	"os"
 
 	"github.com/corona10/goimagehash"
 )
 
 func integrityPhashFromFile(filePath string) (string, error) {
-	f, err := os.Open(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer file.Close()
 
-	fi, err := f.Stat()
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return "", err
 	}
-
-	fileSize := int64(fi.Size())
-
+	fileSize := int64(fileInfo.Size())
 	if fileSize == 0 {
 		return "", fmt.Errorf("filesize is zero")
 	}
 
-	img1, err := jpeg.Decode(f)
+	// Limit the reader to only the necessary bytes
+	limitedReader := io.LimitReader(file, 512) // 512 bytes should be enough for most formats
+
+	// Use image.DecodeConfig to only decode the configuration (which includes format)
+	_, _, err = image.DecodeConfig(limitedReader)
 	if err != nil {
 		return "", err
 	}
-	pHash, err := goimagehash.PerceptionHash(img1)
+
+	// Check the image type
+	buf := make([]byte, 512)
+	_, err = file.Read(buf)
+	if err != nil {
+		return "", err
+	}
+
+	// Reset the file pointer
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return "", err
+	}
+
+	// Decode the entire image
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return "", err
+	}
+
+	pHash, err := goimagehash.PerceptionHash(img)
 	if err != nil {
 		return "", err
 	} else {
