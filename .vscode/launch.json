@@ -5,7 +5,17 @@
     "version": "0.2.0",
     "configurations": [
 
-
+        {
+            "name": "integrity - show info",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "cmd/integrity/integrity.go",
+            "args": [
+                "--loglevel", "debug",
+                "--info"
+            ]
+        },
         {
             "name": "integrity - list all digests",
             "type": "go",
@@ -36,7 +46,8 @@
             "program": "cmd/integrity/integrity.go",
             "args": [
                 "--loglevel", "debug",
-                "-aq", "../../data.dat"
+                "--digest" , "sha1,md5,sha256",
+                "-af", "../../data.dat"
             ]
         },
         {
