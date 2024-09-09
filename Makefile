@@ -303,3 +303,9 @@ test-github-test:
 
 show-version:
 	@echo $(VERSION)
+
+create-tag:
+	git tag -a v$(VERSION) -m "v$(VERSION)"
+
+push-tag:
+	git push origin v$(VERSION)
