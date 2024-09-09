@@ -311,7 +311,7 @@ git-push-tag:
 	git push origin v$(VERSION)
 
 git-version-push:
-  git add pkg/integrity/version.go
+	git add pkg/integrity/version.go
 	git commit -m ":bookmark: Updated to version v$(VERSION)"
 	$(MAKE) git-create-tag
 	$(MAKE) git-push-tag
