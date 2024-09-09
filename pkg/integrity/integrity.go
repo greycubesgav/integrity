@@ -1,7 +1,6 @@
 package integrity
 
 import (
-	"crypto"
 	_ "crypto/md5"
 	_ "crypto/sha1"
 	_ "crypto/sha256"
@@ -9,12 +8,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 
 	"github.com/pborman/getopt/v2"
@@ -169,11 +166,11 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 			return err
 		}
 	} else {
-		var hashObj crypto.Hash = config.DigestHash
+		hashObj := config.DigestHash
 		if !hashObj.Available() {
 			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", config.DigestHash)
 		}
-		var hashFunc hash.Hash = hashObj.New()
+		hashFunc := hashObj.New()
 		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
 			return err
 		}
@@ -268,14 +265,11 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 			if strings.HasPrefix(currentFile.digest_name, "sha") {
 				fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
 			}
-		} else if config.DisplayFormat == "md5sum" {
-			if strings.HasPrefix(currentFile.digest_name, "md5") {
-				fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
-			}
+		} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(currentFile.digest_name, "md5") {
+			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
 		} else {
 			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
 		}
-
 	}
 	return nil
 }
@@ -309,32 +303,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		// Generate the display path here as most options will need it
 		var fileDisplayPath string = integ_generatefileDisplayPath(&currentFile)
 
-		//----------------------------------------------------------------------------
-		// ToDo: this following 2 blocks are ran for every file, this could be optimised to run 1 during config setup
-		// Generate a list of digests to work on here to prevent very similar code blocks for 1 hash and multiple hashes
-		var digestList map[string]crypto.Hash
-		digestList = make(map[string]crypto.Hash)
-		if config.Option_AllDigests {
-			digestList = digestTypes
-		} else {
-			digestList[config.DigestName] = config.DigestHash
-		}
-		// Sort the list of digestNames we're running against
-		digestNames := make([]string, 0, len(digestList)) // The sorted list of digestNames we'll run against
-		for digestName := range digestList {
-			digestNames = append(digestNames, digestName)
-		}
-		// Add the two digests that don't come from crypto.Hash
-		//digestNames = append(digestNames, "oshash")
-		//digestNames = append(digestNames, "phash")
-		sort.Strings(digestNames)
-		//----------------------------------------------------------------------------
-
 		switch config.Action {
 		case "list":
-			for _, digestName := range digestNames {
+			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
-				config.DigestHash = digestTypes[digestName]
 				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
 				if err = integ_printChecksum(&currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
@@ -343,18 +315,18 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 
 		case "delete":
-			for hashType := range digestList {
+			for hashType := range config.digestList {
 				config.DigestName = hashType
-				config.DigestHash = digestTypes[hashType]
 				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
-				var hadAttribute bool
-				hadAttribute, err = integ_removeChecksum(&currentFile)
+				hadAttribute, err := integ_removeChecksum(&currentFile)
 				if err != nil {
 					switch config.VerboseLevel {
 					case 0:
 						// Don't print anything we're 'quiet'
 						// Does this make sense here? Do we want to still print this error if we're 'quiet'?
-					case 1, 2:
+					case 1:
+						fmt.Printf("%s : %s : Error removing checksum\n", fileDisplayPath, config.DigestName)
+					case 2:
 						fmt.Printf("%s : %s : Error removing checksum: %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 				} else if !hadAttribute {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/pborman/getopt/v2"
@@ -68,6 +69,8 @@ type Config struct {
 	logLevelName        string
 	logObject           *logrus.Logger
 	returnCode          int // used to store a return code for the cmd util
+	digestList          map[string]crypto.Hash
+	digestNames         []string
 }
 
 func newConfig() *Config {
@@ -96,6 +99,8 @@ func newConfig() *Config {
 		logLevelName:        "info",
 		logObject:           logrus.New(),
 		returnCode:          0,
+		digestList:          make(map[string]crypto.Hash),
+		digestNames:         make([]string, 0),
 	}
 	c.parseCmdlineOpt()
 	return c
@@ -192,6 +197,28 @@ func (c *Config) parseCmdlineOpt() {
 		}
 	} else {
 		c.DigestName = cmdHash[1]
+	}
+
+	// Generate a list of digests to work on here to prevent very similar code blocks for 1 hash and multiple hashes
+	// ToDo: Optimse this code - we're using 2 new lists do we need them?
+	// Can we just create 1 list, that caters for both single and multiple digests, including osHash and phash?
+	// Update, it doesn't look like we need the hash of digests of type cryptoHash as we workout the function needed
+	// At generation time
+	// It looks like we need to update the config.digest variable to set the function before the generation
+	// We might be able to remove the config.digest variable completely as we're now looping round a string list.
+	if c.Option_AllDigests {
+		c.digestList = digestTypes
+		// Sort the list of digestNames we're running against
+		for digestName := range c.digestList {
+			c.digestNames = append(c.digestNames, digestName)
+		}
+		// Add the two digests that don't come from crypto.Hash
+		c.digestNames = append(c.digestNames, "oshash")
+		c.digestNames = append(c.digestNames, "phash")
+		sort.Strings(c.digestNames)
+	} else {
+		c.digestList[c.DigestName] = c.DigestHash
+		c.digestNames = append(c.digestNames, c.DigestName)
 	}
 
 	//-----------------------------------------------------------------------------------------
