@@ -25,26 +25,52 @@ stdout 'data.dat : sha1 : We already have a checksum stored, skipped'
  # Update the file contents and verify file difference is detected
 exec bash -c 'echo tiger > data.dat'
 exec integrity -v -c data.dat
-cmp stdout check_differ_checksums.txt
+cmp stderr check_differ_checksums.txt
 
 # try and remove the checksum - verbose output
 exec integrity -v -d data.dat
 stdout 'data.dat : sha1 : removed'
+
+# Try and remove a checksum that is missing - verbose output
+exec integrity -v -d data.dat
+stdout 'data.dat : sha1 : no attribute'
 
 # Verify the sum removed - verbose output
 exec integrity -v -c data.dat
 stdout 'data.dat : sha1 : No checksum, skipped'
 
 # Try and add a 'none' digest type
-! exec integrity -q -a --digest=none data.dat
+! exec integrity -v -q -a --digest=none data.dat
 cmp stderr unknown-digest.txt
 
 # Try to add checksum to missing file
 ! exec integrity -v -a missing.dat
 stderr 'missing.dat : no such file or directory'
 
+# Try to add checksum to unreadable file
+exec chmod 000 unreadable.dat
+exec integrity -v -a unreadable.dat
+stderr 'unreadable.dat : sha1 : FAILED : Error testing for existing checksum; xattr.get unreadable.dat (user.)*integrity.sha1: permission denied'
+
+# Try to check checksum of a unreadable file
+exec chmod 000 unreadable.dat
+exec integrity -v -c unreadable.dat
+stderr 'sha1 : unreadable.dat : FAILED : failed checking if checksum was stored xattr.get unreadable.dat (user.)*integrity.sha1: permission denied'
+
+# Try to delete a checksum to unreadable file
+exec chmod 000 unreadable.dat
+exec integrity -v -d unreadable.dat
+stderr 'unreadable.dat : sha1 : Error removing checksum: xattr.Remove unreadable.dat (user.)*integrity.sha1: permission denied'
+
+# Try to add checksum to unwriteable file
+exec chmod 444 unreadable.dat
+exec integrity -v -a unreadable.dat
+stderr 'unreadable.dat : sha1 : FAILED : Error adding checksum; xattr.Set unreadable.dat (user.)*integrity.sha1: permission denied'
+
 -- data.dat --
 hello world
+-- unreadable.dat --
+unseen
 -- check_differ_checksums.txt --
 sha1 : data.dat : FAILED : calculated checksum and filesystem read checksum differ!
  ├── stored [22596363b3de40b06f981fb85d82312e8c0ed511]

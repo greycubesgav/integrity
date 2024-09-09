@@ -1,9 +1,18 @@
+# Try and add a number of checksums to a new file
+#  only check the verbose output here as the verbosity output formats are tested in other tests
+exec integrity --digest md5,sha1,sha256,sha512 -v -a data_list_2.dat
+cmp stdout date_list_2.out
+
+# Try and force the addition of a number of existing checksums
+exec integrity --digest md5,sha1,sha256,sha512 -v -f -a data_list_2.dat
+cmp stdout date_list_2.out
+
 # Try and add a checksum to a new file debug
 exec integrity -a --digest=sha1 --loglevel=debug data_list.dat
 stdout 'data_list.dat : sha1 : added'
 
 # List digests as the sha1 format
-exec integrity --display-format=sha1sum data_list.dat
+exec integrity --digest md5 --display-format=sha1sum data_list.dat
 cmp stdout sha1sum.out
 
 # Try and add a checksum to a new file
@@ -21,7 +30,7 @@ stdout 'data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9'
 # List digests as the md5 format
 #  Note: We should ignore the display-format option as we're not md5 here
 exec integrity --display-format=md5sum data_list.dat
-stdout 'data_list.dat : sha1 : 3b854f5e13be0328b7c7701ff679223c72d64550'
+stdout 'd300fa70af75aa4b157382293609dcd9  data_list.dat'
 
 # List digests as the md5 format
 #  Note: We should ignore show the md display-format option as we are md5 here
@@ -43,6 +52,13 @@ cmp stdout list_deleted.txt
 -- data_list.dat --
 hello world
 
+-- data_list_2.dat --
+hello worldy!
+-- date_list_2.out --
+data_list_2.dat : md5 : cab7bf9c260365a7fa018b7dadaabebd : added
+data_list_2.dat : sha1 : 5ff2869653988a09b69662e8dd440b6bf98a14b1 : added
+data_list_2.dat : sha256 : 026ef22eca0901cb536026d648ca2ac579cb4a1df33a80d6c1c23d61825bf42a : added
+data_list_2.dat : sha512 : b01d0e007a9815d850a1fa7da5c962b2f2745e9def1cd6eadf4c9622532fb475cac20bf869cd470d32a5680f1d0b6d295dfe393c054740a9b89e7d0b169fee90 : added
 -- list_all.txt --
 data_list.dat : blake2b_256 : [none]
 data_list.dat : blake2b_384 : [none]

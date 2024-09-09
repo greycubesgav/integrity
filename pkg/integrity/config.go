@@ -65,12 +65,13 @@ type Config struct {
 	Option_Recursive    bool
 	Option_AllDigests   bool
 	xattribute_fullname string
-	Xattribute_prefix   string
+	xattribute_prefix   string
 	logLevelName        string
 	logObject           *logrus.Logger
 	returnCode          int // used to store a return code for the cmd util
 	digestList          map[string]crypto.Hash
 	digestNames         []string
+	binaryDigestName    string
 }
 
 func newConfig() *Config {
@@ -95,18 +96,21 @@ func newConfig() *Config {
 		DisplayFormat:       "",
 		Action:              "check",
 		xattribute_fullname: "",
-		Xattribute_prefix:   "",
+		xattribute_prefix:   "",
 		logLevelName:        "info",
 		logObject:           logrus.New(),
 		returnCode:          0,
 		digestList:          make(map[string]crypto.Hash),
 		digestNames:         make([]string, 0),
+		binaryDigestName:    "",
 	}
 	c.parseCmdlineOpt()
 	return c
 }
 
 func (c *Config) parseCmdlineOpt() {
+
+	var userDigestString string
 
 	// Set the potential command line options
 	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
@@ -122,20 +126,41 @@ func (c *Config) parseCmdlineOpt() {
 	getopt.FlagLong(&c.Verbose, "verbose", 'v', "output more information.")
 	getopt.FlagLong(&c.Quiet, "quiet", 'q', "output less information.")
 	getopt.FlagLong(&c.logLevelName, "loglevel", 0, "set the logging level. One of: panic, fatal, error, warn, info, debug, trace.")
-	getopt.FlagLong(&c.DigestName, "digest", 0, "set the digest method (see help for list of digest types available)")
+	getopt.FlagLong(&userDigestString, "digest", 0, "set the digest method(s) as a comma separated list (see help for list of digest types available)")
 	getopt.FlagLong(&c.Option_ShortPaths, "short-paths", 's', "show only file name when showing file names, useful for generating sha1sum files")
 	getopt.FlagLong(&c.Option_Recursive, "recursive", 'r', "recurse into sub-directories")
 	getopt.FlagLong(&c.DisplayFormat, "display-format", 0, "set the output display format (sha1sum, md5sum). Note: this only shows any checkfiles ")
 	getopt.Parse()
 
-	if c.Quiet {
-		c.VerboseLevel = 0
-	} else if c.Verbose {
-		c.VerboseLevel = 2
-	} else {
-		c.VerboseLevel = 1
+	//-----------------------------------------------------------------------------------------
+	// Cover the help displays with exits first
+	//-----------------------------------------------------------------------------------------
+	// Show simple help, note return code '1' resvered for exit app but return '0' to terminal
+	if c.ShowHelp {
+		printHelp()
+		c.returnCode = 1 // Show help
+		return
+	}
+	// Show the version of the app and exit
+	if c.ShowVersion {
+		fmt.Printf("%s\n", integrity_version)
+		c.returnCode = 1 // Show version
+		return
 	}
 
+	//-----------------------------------------------------------------------------------------
+	// Return error of no arguments are given
+	//-----------------------------------------------------------------------------------------
+	if getopt.NArgs() == 0 && !c.ShowInfo {
+		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
+		getopt.Usage()
+		c.returnCode = 2 // No arguments
+		return
+	}
+
+	//-----------------------------------------------------------------------------------------
+	// Setup the logging level
+	//-----------------------------------------------------------------------------------------
 	if c.logLevelName == "trace" {
 		c.logObject.SetLevel(logrus.TraceLevel)
 	} else if c.logLevelName == "debug" {
@@ -151,124 +176,7 @@ func (c *Config) parseCmdlineOpt() {
 	} else {
 		c.logObject.SetLevel(logrus.InfoLevel)
 	}
-
 	c.logObject.Debugf("LogObjectlevel : [%s]\n", c.logObject.Level)
-
-	//-----------------------------------------------------------------------------------------
-	// Cover the help displays with exits first
-	//-----------------------------------------------------------------------------------------
-	// Show simple help, note return code '1' resvered for exit app but return '0' to terminal
-	if c.ShowHelp {
-		printHelp()
-		c.returnCode = 1
-		return
-	}
-	// Show the version of the app and exit
-	if c.ShowVersion {
-		fmt.Printf("%s\n", integrity_version)
-		c.returnCode = 1
-		return
-	}
-
-	//-----------------------------------------------------------------------------------------
-	// Workout the digest we are using
-	//-----------------------------------------------------------------------------------------
-	// Try and get the digest from the name of the binary, e.g integriy.sha1, integrity.md5
-	// this overrides any other digest setting, other than display formats sha1sum, md5sum etc
-	cmdName := filepath.Base(os.Args[0])
-	if cmdName == "" {
-		c.logObject.Errorf("cmdName is empty, unable to determine the digest from the name of the binary")
-		c.returnCode = 7
-		return
-	}
-	cmdHash := strings.Split(cmdName, ".")
-	if len(cmdHash) < 2 {
-		// We don't have a digest name from the binary name
-		if c.DigestName == "" {
-			// If we haven't been passed a digest name on the command line with --digest=
-			// Try and get it from the environment variable
-			envDigest := os.Getenv(env_name_prefix + "_DIGEST")
-			if envDigest != "" {
-				c.DigestName = envDigest
-			} else {
-				// If this doesn't work, set it to sha1 as default
-				c.DigestName = "sha1"
-			}
-		}
-	} else {
-		c.DigestName = cmdHash[1]
-	}
-
-	// Generate a list of digests to work on here to prevent very similar code blocks for 1 hash and multiple hashes
-	// ToDo: Optimse this code - we're using 2 new lists do we need them?
-	// Can we just create 1 list, that caters for both single and multiple digests, including osHash and phash?
-	// Update, it doesn't look like we need the hash of digests of type cryptoHash as we workout the function needed
-	// At generation time
-	// It looks like we need to update the config.digest variable to set the function before the generation
-	// We might be able to remove the config.digest variable completely as we're now looping round a string list.
-	if c.Option_AllDigests {
-		c.digestList = digestTypes
-		// Sort the list of digestNames we're running against
-		for digestName := range c.digestList {
-			c.digestNames = append(c.digestNames, digestName)
-		}
-		// Add the two digests that don't come from crypto.Hash
-		c.digestNames = append(c.digestNames, "oshash")
-		c.digestNames = append(c.digestNames, "phash")
-		sort.Strings(c.digestNames)
-	} else {
-		c.digestList[c.DigestName] = c.DigestHash
-		c.digestNames = append(c.digestNames, c.DigestName)
-	}
-
-	//-----------------------------------------------------------------------------------------
-	// Check we know the given digest name
-	//-----------------------------------------------------------------------------------------
-	if c.DigestName != "oshash" && c.DigestName != "phash" {
-		if c.DigestHash = digestTypes[c.DigestName]; c.DigestHash == 0 {
-			fmt.Fprintf(os.Stderr, "Error : unknown digest type '%s'\n", c.DigestName)
-			//c.logObject.Errorf("Error : unknown hash type '%s'\n", c.DigestName)
-			c.returnCode = 2
-			return
-		}
-	}
-	c.logObject.Debugf("c.DigestName: '%s'\n", c.DigestName)
-
-	// Check the current OS and create the full xattribute name from the os, const and digest
-	switch runtime.GOOS {
-	case "darwin", "freebsd":
-		c.xattribute_fullname = fmt.Sprintf("%s.%s", xattribute_name, c.DigestName)
-		c.Xattribute_prefix = fmt.Sprintf("%s.", xattribute_name)
-	case "linux":
-		c.xattribute_fullname = fmt.Sprintf("user.%s.%s", xattribute_name, c.DigestName)
-		c.Xattribute_prefix = fmt.Sprintf("user.%s.", xattribute_name)
-	default:
-		c.logObject.Fatalf("Error: non-supported OS type '%s'\n", runtime.GOOS)
-		c.logObject.Fatalf("Supported OS types 'darwin, freebsd, linux'\n")
-		c.returnCode = 3
-		return
-	}
-	c.logObject.Debugf("c.xattribute_fullname: '%s'\n", c.xattribute_fullname)
-
-	// Show internal info about the apps
-	if c.ShowInfo {
-		fmt.Printf("integrity version: %s\n", integrity_version)
-		fmt.Printf("integrity attribute: %s\n", c.xattribute_fullname)
-		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
-		fmt.Printf("integrity verbose level: %d\n", c.VerboseLevel)
-		c.returnCode = 1
-		return
-	}
-
-	//-----------------------------------------------------------------------------------------
-	// Return error of no arguments are given
-	//-----------------------------------------------------------------------------------------
-	if getopt.NArgs() == 0 {
-		fmt.Fprint(os.Stderr, "Error : no arguments given\n")
-		getopt.Usage()
-		c.returnCode = 5
-		return
-	}
 
 	//-----------------------------------------------------------------------------------------
 	// Main Actions
@@ -284,25 +192,129 @@ func (c *Config) parseCmdlineOpt() {
 	} else if c.Action_Transform {
 		c.Action = "transform"
 	}
+	c.logObject.Debugf("c.Action: '%s'\n", c.Action)
 
-	// Display actions list sha1 and md5, overwrite the action and digest type
-	if c.DisplayFormat != "" {
-		// If user has asked for display format, override action to list and digest type to the chosen list type
-		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
-		c.Action = "list"
-		switch c.DisplayFormat {
-		case "sha1sum":
-			c.DigestName = "sha1"
-		case "md5sum":
-			c.DigestName = "md5"
-		default:
-			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
-			c.returnCode = 4
-			return
+	//-----------------------------------------------------------------------------------------
+	// Workout the digest we are using
+	// Heirarchy
+	// 1. binary name , e.g. integriy.sha1
+	// └ 2. command line all digest option
+	//   └ 3. command line option, e.g. --digest=sha256,sha512
+	//     └ 4. environment variable, e.g. INTEGRITY_DIGEST='md5,sha256'
+	// Note: the binary name overwrites any other options
+	//-----------------------------------------------------------------------------------------
+	// Output of this block is a list of potential digestNames, will be validated later
+	if cmdHash := strings.Split(filepath.Base(os.Args[0]), "."); len(cmdHash) == 2 {
+		// Try and get the digest from the name of the binary, e.g integriy.sha1, integrity.md5
+		// this overrides any other digest setting, other than display formats sha1sum, md5sum etc
+		c.digestNames = []string{cmdHash[1]}
+		c.binaryDigestName = cmdHash[1]
+	} else if c.Option_AllDigests {
+		// Otherwise, if we've been asked to perform against all digest types
+		for digestName := range digestTypes {
+			c.digestNames = append(c.digestNames, digestName)
+		}
+		// Add the two digests that don't come from crypto.Hash
+		c.digestNames = append(c.digestNames, "oshash")
+		c.digestNames = append(c.digestNames, "phash")
+	} else {
+		// If we've not been given a string from the user, try and get it from the environment
+		if userDigestString == "" {
+			userDigestString = os.Getenv(env_name_prefix + "_DIGEST")
+		}
+		userDigestArray := strings.Split(userDigestString, ",")
+		if len(userDigestArray) == 1 && userDigestArray[0] == "" {
+			// If all this fails to set the digest, we'll default to sha1
+			c.digestNames = []string{"sha1"}
+		} else {
+			c.digestNames = append(c.digestNames, userDigestArray...)
 		}
 	}
 
-	c.logObject.Debugf("c.Action: '%s'\n", c.Action)
+	// Check if the display format doesn't make the digest
+	if c.DisplayFormat != "" {
+		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
+		// Either we override the action to be list, or we error that the action is not list
+		// if c.Action != "list" {
+		// 	fmt.Fprintf(os.Stderr, "Error : Display format provided but not performing list '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
+		// 	c.returnCode = 8 // Display format provided but action not list
+		// 	return
+		// }
+		// Override the action to be list as we've been given a display format
+		c.Action = "list"
+		// Validate the display format
+		switch c.DisplayFormat {
+		case "sha1sum":
+			if c.binaryDigestName != "" && c.binaryDigestName != "sha1" {
+				fmt.Fprintf(os.Stderr, "Error : asked for sha1sum output but not sha1 binary.\n")
+				c.returnCode = 6 // sha1sum output but not .md5 binary
+				return
+			}
+			c.digestNames = []string{"sha1"}
+		case "md5sum":
+			if c.binaryDigestName != "" && c.binaryDigestName != "md5" {
+				fmt.Fprintf(os.Stderr, "Error : asked for md5sum output but not md5 binary.\n")
+				c.returnCode = 7 // md5sum output but not .md5 binary
+				return
+			}
+			c.digestNames = []string{"md5"}
+		default:
+			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
+			c.returnCode = 4 // Unknown display format
+			return
+		}
+	}
+	c.logObject.Debugf("c.digestNames: '%s'\n", c.digestNames)
+
+	//-----------------------------------------------------------------------------------------
+	// Check we know all the given digest names
+	//-----------------------------------------------------------------------------------------
+	for _, digestName := range c.digestNames {
+		if digestName != "oshash" && digestName != "phash" {
+			if digest, exists := digestTypes[digestName]; exists {
+				c.digestList[digestName] = digest
+			} else {
+				fmt.Fprintf(os.Stderr, "Error : unknown digest type '%s'\n", digestName)
+				c.returnCode = 5 // Unknown digest
+				return
+			}
+		}
+	}
+	// Sort the file list to aid printing
+	sort.Strings(c.digestNames)
+
+	// Check the current OS and create the full xattribute name from the os, const and digest
+	switch runtime.GOOS {
+	case "darwin", "freebsd":
+		c.xattribute_prefix = fmt.Sprintf("%s.", xattribute_name)
+	case "linux":
+		c.xattribute_prefix = fmt.Sprintf("user.%s.", xattribute_name)
+	default:
+		c.logObject.Fatalf("Error: non-supported OS type '%s'\n", runtime.GOOS)
+		c.logObject.Fatalf("Supported OS types 'darwin, freebsd, linux'\n")
+		c.returnCode = 3 // Unknown OS
+		return
+	}
+	c.logObject.Debugf("c.xattribute_prefix: '%s'\n", c.xattribute_prefix)
+
+	// Show internal info about the apps
+	if c.ShowInfo {
+		fmt.Printf("integrity version: %s\n", integrity_version)
+		fmt.Printf("integrity attribute prefix: %s\n", c.xattribute_prefix)
+		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
+		fmt.Printf("digest list: %s\n", c.digestNames)
+		fmt.Printf("integrity verbose level: %d\n", c.VerboseLevel)
+		c.returnCode = 1 // Show info
+		return
+	}
+
+	if c.Quiet {
+		c.VerboseLevel = 0
+	} else if c.Verbose {
+		c.VerboseLevel = 2
+	} else {
+		c.VerboseLevel = 1
+	}
 
 }
 

@@ -166,7 +166,7 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 			return err
 		}
 	} else {
-		hashObj := config.DigestHash
+		hashObj := config.digestList[config.DigestName]
 		if !hashObj.Available() {
 			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", config.DigestHash)
 		}
@@ -266,6 +266,7 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 				fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
 			}
 		} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(currentFile.digest_name, "md5") {
+			// ToDo: Check the output format for md5sum, chksum etc.
 			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
 		} else {
 			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
@@ -307,7 +308,8 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		case "list":
 			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
-				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
+				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
+				config.logObject.Debugf("list: '%s'\n", config.xattribute_fullname)
 				if err = integ_printChecksum(&currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
 					continue
@@ -315,19 +317,18 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 
 		case "delete":
-			for hashType := range config.digestList {
-				config.DigestName = hashType
-				config.xattribute_fullname = config.Xattribute_prefix + config.DigestName
+			for _, digestName := range config.digestNames {
+				config.DigestName = digestName
+				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
+				config.logObject.Debugf("delete: '%s'\n", config.xattribute_fullname)
 				hadAttribute, err := integ_removeChecksum(&currentFile)
 				if err != nil {
 					switch config.VerboseLevel {
-					case 0:
-						// Don't print anything we're 'quiet'
-						// Does this make sense here? Do we want to still print this error if we're 'quiet'?
-					case 1:
-						fmt.Printf("%s : %s : Error removing checksum\n", fileDisplayPath, config.DigestName)
+					case 0, 1:
+						// Always output errors if we're 'quiet'
+						fmt.Fprintf(os.Stderr, "%s : %s : Error removing checksum\n", fileDisplayPath, config.DigestName)
 					case 2:
-						fmt.Printf("%s : %s : Error removing checksum: %s\n", fileDisplayPath, config.DigestName, err.Error())
+						fmt.Fprintf(os.Stderr, "%s : %s : Error removing checksum: %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 				} else if !hadAttribute {
 					switch config.VerboseLevel {
@@ -348,91 +349,102 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 
 		case "add":
-			if !config.Option_Force {
-				var haveDigestStored bool
-				haveDigestStored, err = integ_testChecksumStored(&currentFile)
-				if err != nil {
-					switch config.VerboseLevel {
-					case 0, 1:
-						fmt.Printf("%s : FAILED\n", fileDisplayPath)
-					case 2:
-						fmt.Printf("%s : FAILED : Error testing for existing checksum; %s\n", fileDisplayPath, err.Error())
-					}
-					return nil
-				} else if haveDigestStored {
-					switch config.VerboseLevel {
-					case 0:
-						// Don't print anything we're 'quiet'
-					case 1:
-						fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
-					case 2:
-						fmt.Printf("%s : %s : We already have a checksum stored, skipped\n", fileDisplayPath, config.DigestName)
-					}
-					return nil
-				}
-			}
-
-			// If we've reached here we must want to add the checksum
-			if err = integ_addChecksum(&currentFile); err != nil {
-				switch config.VerboseLevel {
-				case 0:
-					fmt.Printf("%s : FAILED\n", fileDisplayPath)
-				case 1:
-					fmt.Printf("%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
-				case 2:
-					fmt.Printf("%s : %s : FAILED : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
-				}
-			} else {
-				switch config.VerboseLevel {
-				case 0:
-					// Don't print anything we're 'quiet'
-				case 1:
-					fmt.Printf("%s : %s : added\n", fileDisplayPath, currentFile.digest_name)
-				case 2:
-					fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
-				}
-			}
-
-		case "check":
-			var haveDigestStored bool
-			if haveDigestStored, err = integ_testChecksumStored(&currentFile); err != nil {
-				fmt.Fprintf(os.Stderr, "%s : failed checking if checksum was stored : %s\n", fileDisplayPath, err)
-				return nil
-			} else {
-				if haveDigestStored {
-					if err = integ_checkChecksum(&currentFile); err != nil {
+			for _, digestName := range config.digestNames {
+				config.DigestName = digestName
+				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
+				config.logObject.Debugf("add: '%s'\n", config.xattribute_fullname)
+				if !config.Option_Force {
+					var haveDigestStored bool
+					haveDigestStored, err = integ_testChecksumStored(&currentFile)
+					if err != nil {
 						switch config.VerboseLevel {
-						case 0:
-							fmt.Printf("%s : FAILED\n", fileDisplayPath)
-						case 1:
-							fmt.Printf("%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+						case 0, 1:
+							fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
 						case 2:
-							fmt.Printf("%s : %s : FAILED : %s\n", config.DigestName, fileDisplayPath, err.Error())
+							fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error testing for existing checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
 						}
-					} else {
+						return nil
+					} else if haveDigestStored {
 						switch config.VerboseLevel {
 						case 0:
 							// Don't print anything we're 'quiet'
 						case 1:
-							fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+							fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
 						case 2:
-							fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+							fmt.Printf("%s : %s : We already have a checksum stored, skipped\n", fileDisplayPath, config.DigestName)
 						}
+						continue
+					}
+				}
+
+				// If we've reached here we must want to add the checksum
+				if err = integ_addChecksum(&currentFile); err != nil {
+					switch config.VerboseLevel {
+					case 0, 1:
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+					case 2:
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 				} else {
 					switch config.VerboseLevel {
 					case 0:
-						// Musing: is it an 'error' if we don't have a checksum?
-						// Answer: "no" We have 2 states for no output during check,
-						// The file has a checksum and it is correct or it doesn't have a checksum
-						// The assumption here is if we are quiet and don't have a checksum the file
-						// Isn't important enough to check
+						// Don't print anything we're 'quiet'
 					case 1:
-						fmt.Printf("%s : %s : No checksum\n", fileDisplayPath, config.DigestName)
+						fmt.Printf("%s : %s : added\n", fileDisplayPath, currentFile.digest_name)
 					case 2:
-						fmt.Printf("%s : %s : No checksum, skipped\n", fileDisplayPath, config.DigestName)
+						fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+					}
+				}
+			}
+
+		case "check":
+			for _, digestName := range config.digestNames {
+				config.DigestName = digestName
+				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
+				config.logObject.Debugf("check: '%s'\n", config.xattribute_fullname)
+				var haveDigestStored bool
+				if haveDigestStored, err = integ_testChecksumStored(&currentFile); err != nil {
+					switch config.VerboseLevel {
+					case 0, 1:
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+					case 2:
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : failed checking if checksum was stored %s\n", config.DigestName, fileDisplayPath, err.Error())
 					}
 					return nil
+				} else {
+					if haveDigestStored {
+						if err = integ_checkChecksum(&currentFile); err != nil {
+							switch config.VerboseLevel {
+							case 0, 1:
+								fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+							case 2:
+								fmt.Fprintf(os.Stderr, "%s : %s : FAILED : %s\n", config.DigestName, fileDisplayPath, err.Error())
+							}
+						} else {
+							switch config.VerboseLevel {
+							case 0:
+								// Don't print anything we're 'quiet'
+							case 1:
+								fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+							case 2:
+								fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+							}
+						}
+					} else {
+						switch config.VerboseLevel {
+						case 0:
+							// Musing: is it an 'error' if we don't have a checksum?
+							// Answer: "no" We have 2 states for no output during check,
+							// The file has a checksum and it is correct or it doesn't have a checksum
+							// The assumption here is if we are quiet and don't have a checksum the file
+							// Isn't important enough to check
+						case 1:
+							fmt.Printf("%s : %s : No checksum\n", fileDisplayPath, config.DigestName)
+						case 2:
+							fmt.Printf("%s : %s : No checksum, skipped\n", fileDisplayPath, config.DigestName)
+						}
+						return nil
+					}
 				}
 			}
 
@@ -470,7 +482,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)
-			config.returnCode = 6
+			config.returnCode = 9 // Unknown action
 			return errors.New("unknown action")
 		}
 	}
@@ -502,11 +514,11 @@ func Run() int {
 			var errorString string = err.Error()
 			if strings.Contains(errorString, "no such file or directory") {
 				fmt.Fprintf(os.Stderr, "%s : no such file or directory\n", path)
-				config.returnCode = 10
+				config.returnCode = 10 // No such file or directory
 				continue
 			}
 			fmt.Fprintf(os.Stderr, "%s : ERROR : %s\n", path, err)
-			config.returnCode = 12
+			config.returnCode = 12 // Error stating file
 			continue
 		}
 
