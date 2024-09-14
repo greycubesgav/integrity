@@ -2,23 +2,23 @@
 # Different Digest Tests
 # Try and add a sha256 checksum to a file
 exec integrity -v -a --digest=sha256 data.dat
-stdout 'data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : added'
+stdout '^data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : added$'
 
  # Verify the sum created
 exec integrity -v --digest=sha256 data.dat
-stdout 'data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : PASSED'
+stdout '^data.dat : sha256 : a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 : PASSED$'
 
 # add an ohash checksum
 exec integrity -a --digest=oshash data.dat
-stdout 'data.dat : oshash : added'
+stdout '^data.dat : oshash : added$'
 
 # add a blake2b_256 checksum
 exec integrity -a --digest=blake2b_256 data.dat
-stdout 'data.dat : blake2b_256 : added'
+stdout '^data.dat : blake2b_256 : added$'
 
 # check the blake2b_256 checksum
 exec integrity -v --digest=blake2b_256 data.dat
-stdout 'data.dat : blake2b_256 : c71b05fd1d1c7bf7e928ff18e58db5193e9316416cc26ba9cc9094da80d7011e : PASSED'
+stdout '^data.dat : blake2b_256 : c71b05fd1d1c7bf7e928ff18e58db5193e9316416cc26ba9cc9094da80d7011e : PASSED$'
 
 # add an none checksum, output error
 ! exec integrity -a --digest=none data.dat
@@ -39,16 +39,16 @@ exec integrity -a -r mydir
 # Try to add a checksum to a symlink
 exec ln -s data3.dat symlink.dat
 exec integrity -a -v symlink.dat
-stdout 'symlink.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d : added'
+stdout '^symlink.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d : added$'
 
 # Check if we have updated the original
 exec integrity -l -v data3.dat
-stdout 'data3.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d'
+stdout '^data3.dat : sha1 : 700f6a62793f57adfc777ee9ffd3076aae5a537d$'
 
 # Try to add a checksum to a file of size 0
 exec touch data0.dat
 exec integrity -a -v data0.dat
-stdout 'data0.dat : sha1 : da39a3ee5e6b4b0d3255bfef95601890afd80709 : added'
+stdout '^data0.dat : sha1 : da39a3ee5e6b4b0d3255bfef95601890afd80709 : added$'
 
 # Disabled test, when running automated tests unable to set env
 # Set the digest through the Environment

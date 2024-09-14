@@ -3,44 +3,44 @@
 #--------------------------------------------------------------
 # Try and list a checksum on a new file - normal output
 exec integrity -l data.dat
-stdout 'data.dat : sha1 : \[none\]'
+stdout '^data.dat : sha1 : \[none\]$'
 
 # Try and add a checksum to a new file - normal output
 exec integrity -a data.dat
-stdout 'data.dat : sha1 : added'
+stdout '^data.dat : sha1 : added$'
 
 # Verify the sum created and valid - normal output
 exec integrity -c data.dat
-stdout 'data.dat : sha1 : PASSED'
+stdout '^data.dat : sha1 : PASSED$'
 
 # List the checksum - normal output
 exec integrity -l data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+stdout '^data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511$'
 
 # List a non-existing checksum - normal output
 exec integrity --digest=sha256 -l data.dat
-stdout 'data.dat : sha256 : \[none\]'
+stdout '^data.dat : sha256 : \[none\]$'
 
 # Try and add a new checksum on top
 exec integrity -a data.dat
-stdout 'data.dat : sha1 : skipped'
+stdout '^data.dat : sha1 : skipped$'
 
 # Update the file contents and verify file difference is detected
 exec bash -c 'echo tiger > data.dat'
 exec integrity -c data.dat
-stderr 'data.dat : sha1 : FAILED'
+stderr '^data.dat : sha1 : FAILED$'
 
 # Try and remove the checksum - normal output
 exec integrity -d data.dat
-stdout 'data.dat : sha1 : removed'
+stdout '^data.dat : sha1 : removed$'
 
 # Try and remove a checksum that is missing - normal output
 exec integrity -d data.dat
-stdout 'data.dat : sha1 : no attribute'
+stdout '^data.dat : sha1 : no attribute$'
 
 # Verify the sum has been removed - normal output
 exec integrity -c data.dat
-stdout 'data.dat : sha1 : No checksum'
+stdout '^data.dat : sha1 : No checksum$'
 
 # Try and add a 'none' digest type
 ! exec integrity -a --digest=none data.dat
@@ -48,32 +48,32 @@ cmp stderr unknown-digest.txt
 
 # Try to add checksum to missing file
 ! exec integrity -a missing.dat
-stderr 'missing.dat : no such file or directory'
+stderr '^missing.dat : no such file or directory$'
 
 # Try to add checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+cmp stderr unreadable.stderr
 
 # Try to check checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -c unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to list checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -l unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to delete a checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -d unreadable.dat
-stderr 'unreadable.dat : sha1 : Error removing checksum'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to add checksum to unwriteable file
 exec chmod 444 unreadable.dat
 exec integrity -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 -- data.dat --
 hello world
@@ -81,3 +81,5 @@ hello world
 unseen
 -- unknown-digest.txt --
 Error : unknown digest type 'none'
+-- unreadable.stderr --
+unreadable.dat : sha1 : FAILED

@@ -4,27 +4,27 @@
 #--------------------------------------------------------------
 # Try and list a checksum on a new file - normal output
 exec integrity -v -l data.dat
-stdout 'data.dat : sha1 : \[no checksum stored in (user.)*integrity.sha1\]'
+stdout '^data.dat : sha1 : \[no checksum stored in (user.)*integrity.sha1\]$'
 
 # Try and add a checksum to a new file - verbose output
 exec integrity -v -a data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : added'
+stdout '^data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : added$'
 
 # Verify the sum created and valid - verbose output
 exec integrity -v -c data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED'
+stdout '^data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : PASSED$'
 
 # List the checksum - normal output
 exec integrity -v -l data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+stdout '^data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511$'
 
 # List a non-existing checksum - normal output
 exec integrity -v --digest=sha256 -l data.dat
-stdout 'data.dat : sha256 : \[no checksum stored in (user.)*integrity.sha256\]'
+stdout '^data.dat : sha256 : \[no checksum stored in (user.)*integrity.sha256\]$'
 
 # Try and add a checksum on top - verbose output
 exec integrity -v -a data.dat
-stdout 'data.dat : sha1 : We already have a checksum stored, skipped'
+stdout '^data.dat : sha1 : We already have a checksum stored, skipped$'
 
  # Update the file contents and verify file difference is detected
 exec bash -c 'echo tiger > data.dat'
@@ -33,15 +33,15 @@ cmp stderr check_differ_checksums.txt
 
 # try and remove the checksum - verbose output
 exec integrity -v -d data.dat
-stdout 'data.dat : sha1 : removed'
+stdout '^data.dat : sha1 : removed$'
 
 # Try and remove a checksum that is missing - verbose output
 exec integrity -v -d data.dat
-stdout 'data.dat : sha1 : no attribute'
+stdout '^data.dat : sha1 : no checksum attribute found$'
 
 # Verify the sum removed - verbose output
 exec integrity -v -c data.dat
-stdout 'data.dat : sha1 : No checksum, skipped'
+stdout '^data.dat : sha1 : No checksum, skipped$'
 
 # Try and add a 'none' digest type
 ! exec integrity -v -q -a --digest=none data.dat
@@ -49,32 +49,32 @@ cmp stderr unknown-digest.txt
 
 # Try to add checksum to missing file
 ! exec integrity -v -a missing.dat
-stderr 'missing.dat : no such file or directory'
+stderr '^missing.dat : no such file or directory$'
 
 # Try to add checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED : Error testing for existing checksum; xattr.get unreadable.dat (user.)*integrity.sha1: permission denied'
+stderr '^unreadable.dat : sha1 : FAILED : Error testing for existing checksum; xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to check checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -c unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED : failed checking if checksum was stored xattr.get unreadable.dat (user.)*integrity.sha1: permission denied'
+stderr '^unreadable.dat : sha1 : FAILED : failed checking if checksum was stored xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to list checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -l unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED : Error reading checksum : xattr.get unreadable.dat (user.)*integrity.sha1: permission denied'
+stderr '^unreadable.dat : sha1 : FAILED : Error reading checksum : xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to delete a checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -d unreadable.dat
-stderr 'unreadable.dat : sha1 : Error removing checksum: xattr.Remove unreadable.dat (user.)*integrity.sha1: permission denied'
+stderr '^unreadable.dat : sha1 : FAILED : Error removing checksum : xattr.Remove unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to add checksum to readable but unwriteable file
 exec chmod 444 unreadable.dat
 exec integrity -v -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED : Error adding checksum; xattr.Set unreadable.dat (user.)*integrity.sha1: permission denied'
+stderr '^unreadable.dat : sha1 : FAILED : Error adding checksum : xattr.Set unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 -- data.dat --
 hello world

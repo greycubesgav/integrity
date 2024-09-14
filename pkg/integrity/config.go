@@ -31,7 +31,6 @@ var digestTypes = map[string]crypto.Hash{
 	"sha256":      crypto.SHA256,
 	"sha384":      crypto.SHA384,
 	"sha512":      crypto.SHA512,
-	"md5sha1":     crypto.MD5SHA1,
 	"sha3_224":    crypto.SHA3_224,
 	"sha3_256":    crypto.SHA3_256,
 	"sha3_384":    crypto.SHA3_384,
@@ -258,6 +257,8 @@ func (c *Config) parseCmdlineOpt() {
 				return
 			}
 			c.digestNames = []string{"md5"}
+		case "cksum":
+			// We will output any checksum in this case, no need to force the digest
 		default:
 			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
 			c.returnCode = 4 // Unknown display format

@@ -17,6 +17,7 @@ import (
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/xattr"
 	_ "golang.org/x/crypto/blake2b"
+	_ "golang.org/x/crypto/blake2s"
 	_ "golang.org/x/crypto/sha3"
 )
 
@@ -168,7 +169,8 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	} else {
 		hashObj := config.digestList[config.DigestName]
 		if !hashObj.Available() {
-			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", config.DigestHash)
+			config.logObject.Debugf("integ_generateChecksum !hashObj.Available():%s\n", config.DigestName)
+			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", hashObj)
 		}
 		hashFunc := hashObj.New()
 		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
@@ -243,25 +245,24 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 			case 0:
 				// Don't print anything we're 'quiet'
 			case 1:
-				fmt.Printf("%s : %s : [none]\n", fileDisplayPath, config.DigestName)
+				displayFileMessage(fileDisplayPath, "[none]")
 			case 2:
-				fmt.Printf("%s : %s : [no checksum stored in %s]\n", fileDisplayPath, config.DigestName, config.xattribute_fullname)
+				displayFileMessage(fileDisplayPath, fmt.Sprintf("[no checksum stored in %s]", config.xattribute_fullname))
 			}
+
 		} else {
 			switch config.VerboseLevel {
 			case 0, 1:
 				// Always output errors if we're 'quiet'
-				fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+				displayFileErrorMessage(fileDisplayPath, "FAILED")
 			case 2:
-				fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error reading checksum : %s\n", fileDisplayPath, config.DigestName, err.Error())
+				displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : Error reading checksum : %s", err.Error()))
 			}
 			return err
 		}
 	} else {
-		if config.DisplayFormat == "sha1sum" {
-			if strings.HasPrefix(currentFile.digest_name, "sha") {
-				fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
-			}
+		if config.DisplayFormat == "sha1sum" && strings.HasPrefix(currentFile.digest_name, "sha") {
+			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
 		} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(currentFile.digest_name, "md5") {
 			// ToDo: Check the output format for md5sum, chksum etc.
 			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
@@ -270,6 +271,14 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 		}
 	}
 	return nil
+}
+
+func displayFileMessage(fileDisplayPath string, message string) {
+	fmt.Fprintf(os.Stdout, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
+}
+
+func displayFileErrorMessage(fileDisplayPath string, message string) {
+	fmt.Fprintf(os.Stderr, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
 }
 
 func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
@@ -323,17 +332,19 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					switch config.VerboseLevel {
 					case 0, 1:
 						// Always output errors if we're 'quiet'
-						fmt.Fprintf(os.Stderr, "%s : %s : Error removing checksum\n", fileDisplayPath, config.DigestName)
+						displayFileErrorMessage(fileDisplayPath, "FAILED")
 					case 2:
-						fmt.Fprintf(os.Stderr, "%s : %s : Error removing checksum: %s\n", fileDisplayPath, config.DigestName, err.Error())
+						displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : Error removing checksum : %s", err.Error()))
 					}
 				} else if !hadAttribute {
 					switch config.VerboseLevel {
 					case 0:
 						// Don't print anything we're 'quiet'
 						// Does this make sense here? Do we want to still print this error if we're 'quiet'?
-					case 1, 2:
-						fmt.Printf("%s : %s : no attribute\n", fileDisplayPath, config.DigestName)
+					case 1:
+						displayFileMessage(fileDisplayPath, "no attribute")
+					case 2:
+						displayFileMessage(fileDisplayPath, "no checksum attribute found")
 					}
 				} else {
 					switch config.VerboseLevel {
@@ -380,7 +391,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					case 0, 1:
 						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
 					case 2:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error adding checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
+						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error adding checksum : %s\n", fileDisplayPath, config.DigestName, err.Error())
 					}
 				} else {
 					switch config.VerboseLevel {
