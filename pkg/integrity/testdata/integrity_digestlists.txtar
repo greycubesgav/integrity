@@ -9,7 +9,7 @@ cmp stdout date_list_2.out
 
 # Try and add a checksum to a new file debug
 exec integrity -a --digest=sha1 --loglevel=debug data_list.dat
-stdout 'data_list.dat : sha1 : added'
+stdout '^data_list.dat : sha1 : added$'
 
 # List digests as the sha1 format
 exec integrity --digest md5 --display-format=sha1sum data_list.dat
@@ -17,20 +17,20 @@ cmp stdout sha1sum.out
 
 # Try and add a checksum to a new file
 exec integrity --digest=md5 -a data_list.dat
-stdout 'data_list.dat : md5 : added'
+stdout '^data_list.dat : md5 : added$'
 
 # Try and list a checksum added to the new file
 exec integrity -l --digest=md5 ./data_list.dat
-stdout './data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9'
+stdout '^./data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9$'
 
 # Try and list a checksum added to the new file
 exec integrity -l -s --digest=md5 ./data_list.dat
-stdout 'data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9'
+stdout '^data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9$'
 
 # List digests as the md5 format
 #  Note: We should ignore the display-format option as we're not md5 here
 exec integrity --display-format=md5sum data_list.dat
-stdout 'd300fa70af75aa4b157382293609dcd9  data_list.dat'
+stdout '^d300fa70af75aa4b157382293609dcd9  data_list.dat$'
 
 # List digests as the md5 format
 exec integrity --display-format=md5sum data_list.dat

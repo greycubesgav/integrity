@@ -17,7 +17,7 @@ exec integrity -q -c data.dat
 
 # List the checksum - quiet output
 exec integrity -q -l data.dat
-stdout 'data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511'
+stdout '^data.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511$'
 
 # List a non-existing checksum - quiet output
 exec integrity -q --digest=sha256 -l data.dat
@@ -30,7 +30,7 @@ exec integrity -q -a data.dat
  # Update the file contents and verify file difference is detected
 exec bash -c 'echo tiger > data.dat'
 exec integrity -q -c data.dat
-stderr 'data.dat : sha1 : FAILED'
+stderr '^data.dat : sha1 : FAILED$'
 
 # Try and remove the checksum - quiet output
 exec integrity -q -d data.dat
@@ -52,37 +52,39 @@ cmp stderr unknown-digest.txt
 
 # Try to add checksum to missing file
 ! exec integrity -q -a missing.dat
-stderr 'missing.dat : no such file or directory'
+stderr '^missing.dat : no such file or directory$'
 
 # Try to add checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -q -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to check checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -q -c unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to list checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -q -l unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+cmp stderr unreadable.stderr
 
 # Try to delete a checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -q -d unreadable.dat
-stderr 'unreadable.dat : sha1 : Error removing checksum'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 # Try to add checksum to unwriteable file
 exec chmod 444 unreadable.dat
 exec integrity -q -a unreadable.dat
-stderr 'unreadable.dat : sha1 : FAILED'
+stderr '^unreadable.dat : sha1 : FAILED$'
 
 
 -- data.dat --
 hello world
 -- unreadable.dat --
 unseen
+-- unreadable.stderr --
+unreadable.dat : sha1 : FAILED
 -- unknown-digest.txt --
 Error : unknown digest type 'none'
