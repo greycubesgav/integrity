@@ -17,6 +17,7 @@ import (
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/xattr"
 	_ "golang.org/x/crypto/blake2b"
+	_ "golang.org/x/crypto/blake2s"
 	_ "golang.org/x/crypto/sha3"
 )
 
@@ -168,7 +169,8 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	} else {
 		hashObj := config.digestList[config.DigestName]
 		if !hashObj.Available() {
-			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", config.DigestHash)
+			config.logObject.Debugf("integ_generateChecksum !hashObj.Available():%s\n", config.DigestName)
+			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", hashObj)
 		}
 		hashFunc := hashObj.New()
 		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
@@ -258,10 +260,8 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 			return err
 		}
 	} else {
-		if config.DisplayFormat == "sha1sum" {
-			if strings.HasPrefix(currentFile.digest_name, "sha") {
-				fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
-			}
+		if config.DisplayFormat == "sha1sum" && strings.HasPrefix(currentFile.digest_name, "sha") {
+			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
 		} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(currentFile.digest_name, "md5") {
 			// ToDo: Check the output format for md5sum, chksum etc.
 			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)

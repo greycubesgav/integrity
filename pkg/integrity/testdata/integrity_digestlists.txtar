@@ -1,7 +1,7 @@
-# Try and add a number of checksums to a new file
+# Try and add all supported crypto checksums to a new file
 #  only check the verbose output here as the verbosity output formats are tested in other tests
-exec integrity --digest md5,sha1,sha256,sha512 -v -a data_list_2.dat
-cmp stdout date_list_2.out
+exec integrity --digest md5,sha1,sha224,sha256,sha384,sha512,sha3_224,sha3_256,sha3_384,sha3_512,sha512_224,sha512_256,blake2s_256,blake2b_256,blake2b_384,blake2b_512 -v -a data_list_2.dat
+cmp stdout date_list_2.all.out
 
 # Try and force the addition of a number of existing checksums
 exec integrity --digest md5,sha1,sha256,sha512 -v -f -a data_list_2.dat
@@ -33,8 +33,11 @@ exec integrity --display-format=md5sum data_list.dat
 stdout 'd300fa70af75aa4b157382293609dcd9  data_list.dat'
 
 # List digests as the md5 format
-#  Note: We should ignore show the md display-format option as we are md5 here
-exec integrity --digest=md5 --display-format=md5sum data_list.dat
+exec integrity --display-format=md5sum data_list.dat
+cmp stdout md5sum.out
+
+# Try to use display format md5sum when using a different digest - should override the digest
+exec integrity --digest=sha1 --display-format=md5sum data_list.dat
 cmp stdout md5sum.out
 
 # List all the possible digests
@@ -59,13 +62,29 @@ data_list_2.dat : md5 : cab7bf9c260365a7fa018b7dadaabebd : added
 data_list_2.dat : sha1 : 5ff2869653988a09b69662e8dd440b6bf98a14b1 : added
 data_list_2.dat : sha256 : 026ef22eca0901cb536026d648ca2ac579cb4a1df33a80d6c1c23d61825bf42a : added
 data_list_2.dat : sha512 : b01d0e007a9815d850a1fa7da5c962b2f2745e9def1cd6eadf4c9622532fb475cac20bf869cd470d32a5680f1d0b6d295dfe393c054740a9b89e7d0b169fee90 : added
+-- date_list_2.all.out --
+data_list_2.dat : blake2b_256 : 0606ab69eccd9642a141c1605dd6f8405bf9b357504098e0515ae29919a7c639 : added
+data_list_2.dat : blake2b_384 : 036c2db48c0589c9aba9e43e0a79e0220435cb81ed36be0aea534d7c3e557bd215471e91596740be181ca9abcaab1e8b : added
+data_list_2.dat : blake2b_512 : 74f58fd78bdf5dc3dc64af988f267d1940fb661882a9d322b99efe23fddeef91b0032e36c3d5aa5d111bfed36ea52f2ae0b1de8b95b34e0093bab495096b3e61 : added
+data_list_2.dat : blake2s_256 : 7da6811d71580ba3ea1c1106fe8d7b41c01e97a0075bed2ebe56eece2ce41527 : added
+data_list_2.dat : md5 : cab7bf9c260365a7fa018b7dadaabebd : added
+data_list_2.dat : sha1 : 5ff2869653988a09b69662e8dd440b6bf98a14b1 : added
+data_list_2.dat : sha224 : 85ffff29388b0a125b3d30154c5c8656f21037d918e587332f86078c : added
+data_list_2.dat : sha256 : 026ef22eca0901cb536026d648ca2ac579cb4a1df33a80d6c1c23d61825bf42a : added
+data_list_2.dat : sha384 : ba70e9935d65c15f1c68f9f93d2dda08d416ac39ea1a04966d125badeac17b8392b8c9093aac4b1ff355c02c66882ddf : added
+data_list_2.dat : sha3_224 : e4e3c49fc058b124ad5dc53bb9802515f2749c708dbd21dc4b2eb62d : added
+data_list_2.dat : sha3_256 : 97f91bda02c4a1aa13f1d0210b0cb899cccfce14ff3774cb4bb573d53d0dce91 : added
+data_list_2.dat : sha3_384 : 17be8b619e39a7faa17ee964f281bfda9bc0d7ecf4b6e5c7f46b9cf9a6d0cf396ff03c7741946a3757587dfcc9c7e726 : added
+data_list_2.dat : sha3_512 : 8bce92e1eb19ef665b408fda90b51c1eb30d846e86298c819e04882489dc7fbf004c1be7b2cfd640618a52f1b2687f2f17d545a4fcc9ac136bad4e59429d6312 : added
+data_list_2.dat : sha512 : b01d0e007a9815d850a1fa7da5c962b2f2745e9def1cd6eadf4c9622532fb475cac20bf869cd470d32a5680f1d0b6d295dfe393c054740a9b89e7d0b169fee90 : added
+data_list_2.dat : sha512_224 : 8e3f64d74b433ad7ae0b959b5987fc28da3e93b23e60ed3b46e9df50 : added
+data_list_2.dat : sha512_256 : e817dc29c78174a789121bdc9a1823ac13082a5ff4f2c284f3c876a74079e2f8 : added
 -- list_all.txt --
 data_list.dat : blake2b_256 : [none]
 data_list.dat : blake2b_384 : [none]
 data_list.dat : blake2b_512 : [none]
 data_list.dat : blake2s_256 : [none]
 data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9
-data_list.dat : md5sha1 : [none]
 data_list.dat : oshash : [none]
 data_list.dat : phash : [none]
 data_list.dat : sha1 : 3b854f5e13be0328b7c7701ff679223c72d64550
@@ -85,7 +104,6 @@ data_list.dat : blake2b_384 : [none]
 data_list.dat : blake2b_512 : [none]
 data_list.dat : blake2s_256 : [none]
 data_list.dat : md5 : [none]
-data_list.dat : md5sha1 : [none]
 data_list.dat : oshash : [none]
 data_list.dat : phash : [none]
 data_list.dat : sha1 : [none]
