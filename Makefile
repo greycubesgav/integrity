@@ -279,7 +279,7 @@ test:
 
 test-code-coverage:
 	# Run to generate code coverage, then cmd-shift-p : go:toggle test coverage to view code coverage
-	go test -v -cover ./...
+	go test -v -cover ./pkg/integrity
 
 test-add-linux-attr:
 	setfattr -n user.test -v "This is the user.test attribute" data.dat
