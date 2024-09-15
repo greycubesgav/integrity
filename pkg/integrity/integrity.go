@@ -68,10 +68,10 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 			var errorString string = err.Error()
 			if strings.Contains(errorString, "attribute not found") || strings.Contains(errorString, "no data available") {
 				switch config.VerboseLevel {
-				case 0:
+				case 0, 1:
 					// Don't print anything we're 'quiet'
-				case 1, 2:
-					fmt.Printf("%s : Didn't find old attribute: %s\n", currentFile.fullpath, oldAttribute)
+				case 2:
+					displayFileMessageNoDigest(currentFile.fullpath, fmt.Sprintf("old attribute not found : %s", oldAttribute))
 				}
 			} else {
 				// We got a different error looking for the attribute
@@ -86,7 +86,7 @@ func integ_swapXattrib(currentFile *integrity_fileCard) error {
 			case 0, 1:
 				// Don't print anything we're 'quiet'
 			case 2:
-				fmt.Printf("%s : Found old attribute [%s] : Setting new attribute: [%s]\n", currentFile.fullpath, oldAttribute, config.xattribute_fullname)
+				displayFileMessageNoDigest(currentFile.fullpath, fmt.Sprintf("Found old attribute [%s] : Setting new attribute: [%s]", oldAttribute, config.xattribute_fullname))
 			}
 
 			if err = xattr.Set(currentFile.fullpath, config.xattribute_fullname, data); err != nil {
@@ -487,9 +487,9 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					case 0:
 						// Don't print anything we're 'quiet'
 					case 1:
-						displayFileMessageNoDigest(fileDisplayPath, "SKIPPED")
+						displayFileMessageNoDigest(fileDisplayPath, "skipped")
 					case 2:
-						displayFileMessageNoDigest(fileDisplayPath, "SKIPPED : No old attributes found")
+						displayFileMessageNoDigest(fileDisplayPath, "skipped : No old attributes found")
 					}
 				} else {
 					switch config.VerboseLevel {

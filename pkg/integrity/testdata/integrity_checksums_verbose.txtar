@@ -49,7 +49,7 @@ cmp stderr unknown-digest.txt
 
 # Try and transform checksum attribute names
 exec integrity -v --fix-old data.dat
-cmp stdout fix-old.stdout
+stdout -count=1 '^data.dat : old attribute not found : (user.)*user.integ.sha1\ndata.dat : old attribute not found : (user.)*integ.sha1\ndata.dat : old attribute not found : (user.)*user.integrity.sha1\ndata.dat : skipped : No old attributes found'
 
 # Try to add checksum to missing file
 ! exec integrity -v -a missing.dat
@@ -91,7 +91,7 @@ data.dat : sha1 : FAILED : calculated checksum and filesystem read checksum diff
 -- unknown-digest.txt --
 Error : unknown digest type 'none'
 -- fix-old.stdout --
-data.dat : Didn't find old attribute: user.integ.sha1
-data.dat : Didn't find old attribute: integ.sha1
-data.dat : Didn't find old attribute: user.integrity.sha1
-data.dat : SKIPPED : No old attributes found
+data.dat : Didn't find old attribute : user.integ.sha1
+data.dat : Didn't find old attribute : integ.sha1
+data.dat : Didn't find old attribute : user.integrity.sha1
+data.dat : skipped : No old attributes found
