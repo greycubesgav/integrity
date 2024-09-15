@@ -24,7 +24,7 @@ stdout '^data.dat : sha256 : \[no checksum stored in (user.)*integrity.sha256\]$
 
 # Try and add a checksum on top - verbose output
 exec integrity -v -a data.dat
-stdout '^data.dat : sha1 : We already have a checksum stored, skipped$'
+stdout '^data.dat : sha1 : skipped : We already have a checksum stored$'
 
  # Update the file contents and verify file difference is detected
 exec bash -c 'echo tiger > data.dat'
@@ -33,7 +33,7 @@ cmp stderr check_differ_checksums.txt
 
 # try and remove the checksum - verbose output
 exec integrity -v -d data.dat
-stdout '^data.dat : sha1 : removed$'
+stdout '^data.dat : sha1 : removed checksum attribute$'
 
 # Try and remove a checksum that is missing - verbose output
 exec integrity -v -d data.dat
@@ -41,11 +41,15 @@ stdout '^data.dat : sha1 : no checksum attribute found$'
 
 # Verify the sum removed - verbose output
 exec integrity -v -c data.dat
-stdout '^data.dat : sha1 : No checksum, skipped$'
+stdout '^data.dat : sha1 : no checksum, skipped$'
 
 # Try and add a 'none' digest type
 ! exec integrity -v -q -a --digest=none data.dat
 cmp stderr unknown-digest.txt
+
+# Try and transform checksum attribute names
+exec integrity -v --fix-old data.dat
+cmp stdout fix-old.stdout
 
 # Try to add checksum to missing file
 ! exec integrity -v -a missing.dat
@@ -54,12 +58,12 @@ stderr '^missing.dat : no such file or directory$'
 # Try to add checksum to unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -a unreadable.dat
-stderr '^unreadable.dat : sha1 : FAILED : Error testing for existing checksum; xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
+stderr '^unreadable.dat : sha1 : FAILED : Error testing for existing checksum : xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to check checksum of a unreadable file
 exec chmod 000 unreadable.dat
 exec integrity -v -c unreadable.dat
-stderr '^unreadable.dat : sha1 : FAILED : failed checking if checksum was stored xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
+stderr '^unreadable.dat : sha1 : FAILED : failed checking if checksum was stored : xattr.get unreadable.dat (user.)*integrity.sha1: permission denied$'
 
 # Try to list checksum of a unreadable file
 exec chmod 000 unreadable.dat
@@ -86,3 +90,8 @@ data.dat : sha1 : FAILED : calculated checksum and filesystem read checksum diff
  └── calc'd [e03f0c8aed5365d6de94ba625df38201b5a1fead]
 -- unknown-digest.txt --
 Error : unknown digest type 'none'
+-- fix-old.stdout --
+data.dat : Didn't find old attribute: user.integ.sha1
+data.dat : Didn't find old attribute: integ.sha1
+data.dat : Didn't find old attribute: user.integrity.sha1
+data.dat : SKIPPED : No old attributes found

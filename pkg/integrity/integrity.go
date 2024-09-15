@@ -261,20 +261,27 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 			return err
 		}
 	} else {
-		if config.DisplayFormat == "sha1sum" && strings.HasPrefix(currentFile.digest_name, "sha") {
-			fmt.Printf("%s *%s\n", currentFile.checksum, fileDisplayPath)
-		} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(currentFile.digest_name, "md5") {
-			// ToDo: Check the output format for md5sum, chksum etc.
-			fmt.Printf("%s  %s\n", currentFile.checksum, fileDisplayPath)
-		} else {
-			fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, currentFile.checksum)
-		}
+		displayFileMessage(fileDisplayPath, currentFile.checksum)
 	}
 	return nil
 }
 
+func displayFileMessageNoDigest(fileDisplayPath string, message string) {
+	fmt.Fprintf(os.Stdout, "%s : %s\n", fileDisplayPath, message)
+}
+
+func displayFileErrorMessageNoDigest(fileDisplayPath string, message string) {
+	fmt.Fprintf(os.Stderr, "%s : %s\n", fileDisplayPath, message)
+}
+
 func displayFileMessage(fileDisplayPath string, message string) {
-	fmt.Fprintf(os.Stdout, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
+	if config.DisplayFormat == "sha1sum" && strings.HasPrefix(config.DigestName, "sha") {
+		fmt.Printf("%s *%s\n", message, fileDisplayPath)
+	} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(config.DigestName, "md5") {
+		fmt.Printf("%s  %s\n", message, fileDisplayPath)
+	} else {
+		fmt.Fprintf(os.Stdout, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
+	}
 }
 
 func displayFileErrorMessage(fileDisplayPath string, message string) {
@@ -291,16 +298,26 @@ func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
 }
 
 func handle_path(path string, fileinfo os.FileInfo, err error) error {
-
+	config.logObject.Debugf("handle_path: '%s'\n", path)
 	if err != nil {
-		// Handle the error and return it to stop walking
-		fmt.Printf("Error walking the path %v: %v\n", path, err)
-		return err
+		config.logObject.Debugf("handle_path: error '%s'\n", err)
+		if strings.Contains(err.Error(), "permission denied") {
+			switch config.VerboseLevel {
+			case 0, 1:
+				// Always output errors even if we're 'quiet'
+				displayFileErrorMessageNoDigest(path, "skipped")
+			case 2:
+				displayFileErrorMessageNoDigest(path, fmt.Sprintf("skipped : %s", err.Error()))
+			}
+			return filepath.SkipDir
+		} else {
+			// Handle the error and return it to stop walking
+			fmt.Fprintf(os.Stderr, "Error walking the path : %v : %v\n", path, err)
+			return err
+		}
 	}
 
-	// ToDo: Refactor output to use common print function
-	//       Something that takes the file, the message, and whether its an error type or not?
-	//       Polymorphic to add error on end if we're printing error?
+	config.logObject.Debugf("no errors contiuing\n")
 
 	if !fileinfo.IsDir() {
 		var currentFile integrity_fileCard
@@ -350,8 +367,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					switch config.VerboseLevel {
 					case 0:
 						// Don't print anything we're 'quiet'
-					case 1, 2:
-						fmt.Printf("%s : %s : removed\n", fileDisplayPath, config.DigestName)
+					case 1:
+						displayFileMessage(fileDisplayPath, "removed")
+					case 2:
+						displayFileMessage(fileDisplayPath, "removed checksum attribute")
 					}
 				}
 			}
@@ -367,9 +386,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 					if err != nil {
 						switch config.VerboseLevel {
 						case 0, 1:
-							fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+							// Always output errors even if we're 'quiet'
+							displayFileErrorMessage(fileDisplayPath, "FAILED")
 						case 2:
-							fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error testing for existing checksum; %s\n", fileDisplayPath, config.DigestName, err.Error())
+							displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : Error testing for existing checksum : %s", err.Error()))
 						}
 						return nil
 					} else if haveDigestStored {
@@ -377,9 +397,9 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 						case 0:
 							// Don't print anything we're 'quiet'
 						case 1:
-							fmt.Printf("%s : %s : skipped\n", fileDisplayPath, config.DigestName)
+							displayFileMessage(fileDisplayPath, "skipped")
 						case 2:
-							fmt.Printf("%s : %s : We already have a checksum stored, skipped\n", fileDisplayPath, config.DigestName)
+							displayFileMessage(fileDisplayPath, "skipped : We already have a checksum stored")
 						}
 						continue
 					}
@@ -389,18 +409,19 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				if err = integ_addChecksum(&currentFile); err != nil {
 					switch config.VerboseLevel {
 					case 0, 1:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+						// Always output errors even if we're 'quiet'
+						displayFileErrorMessage(fileDisplayPath, "FAILED")
 					case 2:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : Error adding checksum : %s\n", fileDisplayPath, config.DigestName, err.Error())
+						displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : Error adding checksum : %s", err.Error()))
 					}
 				} else {
 					switch config.VerboseLevel {
 					case 0:
 						// Don't print anything we're 'quiet'
 					case 1:
-						fmt.Printf("%s : %s : added\n", fileDisplayPath, currentFile.digest_name)
+						displayFileMessage(fileDisplayPath, "added")
 					case 2:
-						fmt.Printf("%s : %s : %s : added\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+						displayFileMessage(fileDisplayPath, fmt.Sprintf("%s : added", currentFile.checksum))
 					}
 				}
 			}
@@ -414,9 +435,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				if haveDigestStored, err = integ_testChecksumStored(&currentFile); err != nil {
 					switch config.VerboseLevel {
 					case 0, 1:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+						// Always output errors even if we're 'quiet'
+						displayFileErrorMessage(fileDisplayPath, "FAILED")
 					case 2:
-						fmt.Fprintf(os.Stderr, "%s : %s : FAILED : failed checking if checksum was stored %s\n", fileDisplayPath, config.DigestName, err.Error())
+						displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : failed checking if checksum was stored : %s", err.Error()))
 					}
 					return nil
 				} else {
@@ -424,18 +446,19 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 						if err = integ_checkChecksum(&currentFile); err != nil {
 							switch config.VerboseLevel {
 							case 0, 1:
-								fmt.Fprintf(os.Stderr, "%s : %s : FAILED\n", fileDisplayPath, config.DigestName)
+								// Always output errors even if we're 'quiet'
+								displayFileErrorMessage(fileDisplayPath, "FAILED")
 							case 2:
-								fmt.Fprintf(os.Stderr, "%s : %s : FAILED : %s\n", fileDisplayPath, config.DigestName, err.Error())
+								displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("FAILED : %s", err.Error()))
 							}
 						} else {
 							switch config.VerboseLevel {
 							case 0:
 								// Don't print anything we're 'quiet'
 							case 1:
-								fmt.Printf("%s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name)
+								displayFileMessage(fileDisplayPath, "PASSED")
 							case 2:
-								fmt.Printf("%s : %s : %s : PASSED\n", fileDisplayPath, currentFile.digest_name, currentFile.checksum)
+								displayFileMessage(fileDisplayPath, fmt.Sprintf("%s : PASSED", currentFile.checksum))
 							}
 						}
 					} else {
@@ -445,11 +468,11 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 							// Answer: "no" We have 2 states for no output during check,
 							// The file has a checksum and it is correct or it doesn't have a checksum
 							// The assumption here is if we are quiet and don't have a checksum the file
-							// Isn't important enough to check
+							// isn't important enough to check
 						case 1:
-							fmt.Printf("%s : %s : No checksum\n", fileDisplayPath, config.DigestName)
+							displayFileMessage(fileDisplayPath, "no checksum")
 						case 2:
-							fmt.Printf("%s : %s : No checksum, skipped\n", fileDisplayPath, config.DigestName)
+							displayFileMessage(fileDisplayPath, "no checksum, skipped")
 						}
 						return nil
 					}
@@ -459,23 +482,24 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		case "transform":
 			if err = integ_swapXattrib(&currentFile); err != nil {
 				errorString := err.Error()
-				if strings.Contains(errorString, "No old attributes found") {
+				if strings.Contains(errorString, "no old attributes found") {
 					switch config.VerboseLevel {
 					case 0:
 						// Don't print anything we're 'quiet'
 					case 1:
-						fmt.Printf("%s : %s : SKIPPED\n", fileDisplayPath, currentFile.digest_name)
+						displayFileMessageNoDigest(fileDisplayPath, "SKIPPED")
 					case 2:
-						fmt.Printf("%s : %s : SKIPPED : No old attributes found\n", fileDisplayPath, currentFile.digest_name)
+						displayFileMessageNoDigest(fileDisplayPath, "SKIPPED : No old attributes found")
 					}
 				} else {
 					switch config.VerboseLevel {
 					case 0:
-						fmt.Printf("%s : ERROR\n", fileDisplayPath)
+						// Always output errors even if we're 'quiet'
+						displayFileErrorMessage(fileDisplayPath, "ERROR")
 					case 1:
-						fmt.Printf("%s : %s : ERROR : Error renaming checksum\n", fileDisplayPath, currentFile.digest_name)
+						displayFileErrorMessage(fileDisplayPath, "ERROR : Error renaming checksum")
 					case 2:
-						fmt.Printf("%s : %s : ERROR : Error renaming checksum : %s\n", fileDisplayPath, currentFile.digest_name, err.Error())
+						displayFileErrorMessage(fileDisplayPath, fmt.Sprintf("ERROR : Error renaming checksum : %s", err.Error()))
 					}
 				}
 			} else {
@@ -483,9 +507,9 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				case 0:
 					// Don't print anything we're 'quiet'
 				case 1:
-					fmt.Printf("%s : %s : RENAMED\n", fileDisplayPath, currentFile.digest_name)
+					displayFileMessage(fileDisplayPath, "RENAMED")
 				case 2:
-					fmt.Printf("%s : %s : Renamed old integrity attribute\n", fileDisplayPath, config.xattribute_fullname)
+					displayFileMessage(fileDisplayPath, "RENAMED : Renamed any old integrity attributes")
 				}
 			}
 		default:
@@ -517,27 +541,28 @@ func Run() int {
 	for _, path := range getopt.Args() {
 
 		// ToDo: Consider how to deal with symlinks, should be follow them?
-		pathStat, err := os.Stat(path)
+		config.logObject.Debugf("path: '%s'\n", path)
+		path_fileinfo, err := os.Stat(path)
 		// If we can stat the given file
 		if err != nil {
-			var errorString string = err.Error()
+			errorString := err.Error()
 			if strings.Contains(errorString, "no such file or directory") {
 				fmt.Fprintf(os.Stderr, "%s : no such file or directory\n", path)
 				config.returnCode = 10 // No such file or directory
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "%s : ERROR : %s\n", path, err)
+			displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
 			config.returnCode = 12 // Error stating file
 			continue
 		}
 
-		if pathStat.IsDir() {
+		if path_fileinfo.IsDir() {
+			config.logObject.Debugf("path is directory: recurse? '%t'\n", config.Option_Recursive)
 			if config.Option_Recursive {
 				// Walk the directory structure
 				err := filepath.Walk(path, handle_path)
 				if err != nil {
-					//config.logObject.Fatal(err)
-					config.logObject.Error(err)
+					config.logObject.Debugf("Error from filepath.Walk: err(%s)", err.Error())
 					return 1
 				}
 			} else {
@@ -545,13 +570,14 @@ func Run() int {
 				case 0, 1:
 					// Don't print anything we're 'quiet' / this is not an error
 				case 2:
-					fmt.Printf("%s : skipping directory\n", path)
+					displayFileMessageNoDigest(path, "skipping directory")
 				}
 			}
 		} else {
-			path_fileinfo, err := os.Stat(path)
 			handle_path(path, path_fileinfo, err)
 		}
 	}
+
+	config.logObject.Debugf("config.returnCode: %d\n", config.returnCode)
 	return config.returnCode
 }

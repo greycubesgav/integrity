@@ -22,19 +22,38 @@ stdout '^data.dat : blake2b_256 : c71b05fd1d1c7bf7e928ff18e58db5193e9316416cc26b
 
 # add an none checksum, output error
 ! exec integrity -a --digest=none data.dat
+stderr 'Error : unknown digest type ''none'''
 
 # try to add to non-existing file
 ! exec integrity -a missing.dat
+stderr -count=1 'missing.dat : no such file or directory'
 
 # Try to recurse into a non-existing dir
 ! exec integrity -a -r mydir
+stderr 'mydir : no such file or directory'
 
 # Try to recurse into a dir without recurse
 exec mkdir mydir
 exec integrity -a mydir
+! stdout .
+
+# Try to recurse into a dir without recurse - verbose
+exec integrity -v -a mydir
+stdout 'mydir : skipping directory'
 
 # Try to recurse into a dir with no files
-exec integrity -a -r mydir
+exec integrity -r -a mydir
+
+# Try to traverse a path that is not readable - ToDo: test version outputs no stdout?
+exec chmod 000 mypath/mypath2
+exec integrity -v -a -r mypath
+cmp stdout check_path.verbose.stdout
+cmp stderr check_path.verbose.stderr
+
+# Try and traverse a path tht is not readable - normal
+exec integrity -a -r mypath
+cmp stdout check_path.normal.stdout
+cmp stderr check_path.normal.stderr
 
 # Try to add a checksum to a symlink
 exec ln -s data3.dat symlink.dat
@@ -61,9 +80,14 @@ stdout '^data0.dat : sha1 : da39a3ee5e6b4b0d3255bfef95601890afd80709 : added$'
 #exec integrity.sha1 -a data2.dat"
 #stdout 'data2.dat : sha1 : added'
 
-# add an phash chdcksum
-#exec integrity -a --digest=phash data.dat
-#stdout 'data.dat : phash : added'
+# add an phash checksum on non-image file
+exec integrity -a --digest=phash data.dat
+stderr -count=1 '^data.dat : phash : FAILED$'
+
+# add an phash checksum on non-image file - verbose
+exec integrity -v -a --digest=phash data.dat
+stderr -count=1 '^data.dat : phash : FAILED : Error adding checksum : image: unknown format$'
+
 # FAILING
 
 -- data.dat --
@@ -82,3 +106,19 @@ data.dat : sha1 : We already have a checksum stored, skipped
 -- add_existing_checksum_sha1_quiet.txt --
 -- add_existing_checksum_sha1.txt --
 data.dat : sha1 : skipped
+-- check_path.verbose.stdout --
+mypath/a_myfile : sha1 : 7fe70820e08a1aac0ef224d9c66ab66831cc4ab1 : added
+mypath/x_myfile : sha1 : 7fe70820e08a1aac0ef224d9c66ab66831cc4ab1 : added
+-- check_path.normal.stdout --
+mypath/a_myfile : sha1 : skipped
+mypath/x_myfile : sha1 : skipped
+-- mypath/a_myfile --
+content
+-- mypath/x_myfile --
+content
+-- mypath/mypath2/myfile --
+content
+-- check_path.verbose.stderr --
+mypath/mypath2 : skipped : open mypath/mypath2: permission denied
+-- check_path.normal.stderr --
+mypath/mypath2 : skipped

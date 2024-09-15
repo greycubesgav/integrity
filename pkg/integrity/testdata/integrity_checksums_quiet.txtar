@@ -50,6 +50,10 @@ exec integrity -q -c data.dat
 ! exec integrity -q -a --digest=none data.dat
 cmp stderr unknown-digest.txt
 
+# Try and transform checksum attribute names
+exec integrity -q --fix-old data.dat
+! stdout .
+
 # Try to add checksum to missing file
 ! exec integrity -q -a missing.dat
 stderr '^missing.dat : no such file or directory$'
@@ -78,7 +82,6 @@ stderr '^unreadable.dat : sha1 : FAILED$'
 exec chmod 444 unreadable.dat
 exec integrity -q -a unreadable.dat
 stderr '^unreadable.dat : sha1 : FAILED$'
-
 
 -- data.dat --
 hello world

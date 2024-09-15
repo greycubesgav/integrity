@@ -40,11 +40,15 @@ stdout '^data.dat : sha1 : no attribute$'
 
 # Verify the sum has been removed - normal output
 exec integrity -c data.dat
-stdout '^data.dat : sha1 : No checksum$'
+stdout '^data.dat : sha1 : no checksum$'
 
 # Try and add a 'none' digest type
 ! exec integrity -a --digest=none data.dat
 cmp stderr unknown-digest.txt
+
+# Try and transform checksum attribute names
+exec integrity --fix-old data.dat
+cmp stdout fix-old.stdout
 
 # Try to add checksum to missing file
 ! exec integrity -a missing.dat
@@ -83,3 +87,8 @@ unseen
 Error : unknown digest type 'none'
 -- unreadable.stderr --
 unreadable.dat : sha1 : FAILED
+-- fix-old.stdout --
+data.dat : Didn't find old attribute: user.integ.sha1
+data.dat : Didn't find old attribute: integ.sha1
+data.dat : Didn't find old attribute: user.integrity.sha1
+data.dat : SKIPPED
