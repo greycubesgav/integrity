@@ -10,3 +10,5 @@ pkgs/
 *.dat
 # Binaries
 integrity.*
+# Demo outputs
+demos/output

@@ -316,3 +316,6 @@ git-version-push:
 	git push
 	$(MAKE) git-create-tag
 	$(MAKE) git-push-tag
+
+record-examples:
+	./demos/integrity_generate_casts.sh
