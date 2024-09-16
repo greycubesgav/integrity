@@ -12,7 +12,7 @@ exec integrity -a --digest=sha1 --loglevel=debug data_list.dat
 stdout '^data_list.dat : sha1 : added$'
 
 # List digests as the sha1 format
-exec integrity --digest md5 --display-format=sha1sum data_list.dat
+exec integrity --digest md5 --display-format=sha1sum data_list.dat data_list_2.dat
 cmp stdout sha1sum.out
 
 # Try and add a checksum to a new file
@@ -29,8 +29,8 @@ stdout '^data_list.dat : md5 : d300fa70af75aa4b157382293609dcd9$'
 
 # List digests as the md5 format
 #  Note: We should ignore the display-format option as we're not md5 here
-exec integrity --display-format=md5sum data_list.dat
-stdout '^d300fa70af75aa4b157382293609dcd9  data_list.dat$'
+exec integrity --display-format=md5sum data_list.dat data_list_2.dat
+stdout -count=1 '^d300fa70af75aa4b157382293609dcd9  data_list.dat$'
 
 # List digests as the md5 format
 exec integrity --display-format=md5sum data_list.dat
@@ -39,6 +39,14 @@ cmp stdout md5sum.out
 # Try to use display format md5sum when using a different digest - should override the digest
 exec integrity --digest=sha1 --display-format=md5sum data_list.dat
 cmp stdout md5sum.out
+
+# List digests in cksum format - default of sha1
+exec integrity --display-format=cksum data_list.dat data_list_2.dat
+cmp stdout cksum.out
+
+# List all digests in cksum format
+exec integrity -x --display-format=cksum data_list.dat data_list_2.dat
+cmp stdout cksum.all.out
 
 # List all the possible digests
 exec integrity -lx data_list.dat
@@ -119,8 +127,49 @@ data_list.dat : sha512_224 : [none]
 data_list.dat : sha512_256 : [none]
 -- sha1sum.out --
 3b854f5e13be0328b7c7701ff679223c72d64550 *data_list.dat
+5ff2869653988a09b69662e8dd440b6bf98a14b1 *data_list_2.dat
 -- md5sum.out --
 d300fa70af75aa4b157382293609dcd9  data_list.dat
+-- cksum.out --
+sha1 (data_list.dat) = 3b854f5e13be0328b7c7701ff679223c72d64550
+sha1 (data_list_2.dat) = 5ff2869653988a09b69662e8dd440b6bf98a14b1
+-- cksum.all.out --
+blake2b_256 (data_list.dat) = [none]
+blake2b_384 (data_list.dat) = [none]
+blake2b_512 (data_list.dat) = [none]
+blake2s_256 (data_list.dat) = [none]
+md5 (data_list.dat) = d300fa70af75aa4b157382293609dcd9
+oshash (data_list.dat) = [none]
+phash (data_list.dat) = [none]
+sha1 (data_list.dat) = 3b854f5e13be0328b7c7701ff679223c72d64550
+sha224 (data_list.dat) = [none]
+sha256 (data_list.dat) = [none]
+sha384 (data_list.dat) = [none]
+sha3_224 (data_list.dat) = [none]
+sha3_256 (data_list.dat) = [none]
+sha3_384 (data_list.dat) = [none]
+sha3_512 (data_list.dat) = [none]
+sha512 (data_list.dat) = [none]
+sha512_224 (data_list.dat) = [none]
+sha512_256 (data_list.dat) = [none]
+blake2b_256 (data_list_2.dat) = 0606ab69eccd9642a141c1605dd6f8405bf9b357504098e0515ae29919a7c639
+blake2b_384 (data_list_2.dat) = 036c2db48c0589c9aba9e43e0a79e0220435cb81ed36be0aea534d7c3e557bd215471e91596740be181ca9abcaab1e8b
+blake2b_512 (data_list_2.dat) = 74f58fd78bdf5dc3dc64af988f267d1940fb661882a9d322b99efe23fddeef91b0032e36c3d5aa5d111bfed36ea52f2ae0b1de8b95b34e0093bab495096b3e61
+blake2s_256 (data_list_2.dat) = 7da6811d71580ba3ea1c1106fe8d7b41c01e97a0075bed2ebe56eece2ce41527
+md5 (data_list_2.dat) = cab7bf9c260365a7fa018b7dadaabebd
+oshash (data_list_2.dat) = [none]
+phash (data_list_2.dat) = [none]
+sha1 (data_list_2.dat) = 5ff2869653988a09b69662e8dd440b6bf98a14b1
+sha224 (data_list_2.dat) = 85ffff29388b0a125b3d30154c5c8656f21037d918e587332f86078c
+sha256 (data_list_2.dat) = 026ef22eca0901cb536026d648ca2ac579cb4a1df33a80d6c1c23d61825bf42a
+sha384 (data_list_2.dat) = ba70e9935d65c15f1c68f9f93d2dda08d416ac39ea1a04966d125badeac17b8392b8c9093aac4b1ff355c02c66882ddf
+sha3_224 (data_list_2.dat) = e4e3c49fc058b124ad5dc53bb9802515f2749c708dbd21dc4b2eb62d
+sha3_256 (data_list_2.dat) = 97f91bda02c4a1aa13f1d0210b0cb899cccfce14ff3774cb4bb573d53d0dce91
+sha3_384 (data_list_2.dat) = 17be8b619e39a7faa17ee964f281bfda9bc0d7ecf4b6e5c7f46b9cf9a6d0cf396ff03c7741946a3757587dfcc9c7e726
+sha3_512 (data_list_2.dat) = 8bce92e1eb19ef665b408fda90b51c1eb30d846e86298c819e04882489dc7fbf004c1be7b2cfd640618a52f1b2687f2f17d545a4fcc9ac136bad4e59429d6312
+sha512 (data_list_2.dat) = b01d0e007a9815d850a1fa7da5c962b2f2745e9def1cd6eadf4c9622532fb475cac20bf869cd470d32a5680f1d0b6d295dfe393c054740a9b89e7d0b169fee90
+sha512_224 (data_list_2.dat) = 8e3f64d74b433ad7ae0b959b5987fc28da3e93b23e60ed3b46e9df50
+sha512_256 (data_list_2.dat) = e817dc29c78174a789121bdc9a1823ac13082a5ff4f2c284f3c876a74079e2f8
 -- empty_md5_bsd.out --
 data_list.dat : md5 : [no checksum stored in integrity.md5]
 -- empty_md5_linux.out --

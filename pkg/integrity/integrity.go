@@ -279,6 +279,8 @@ func displayFileMessage(fileDisplayPath string, message string) {
 		fmt.Printf("%s *%s\n", message, fileDisplayPath)
 	} else if config.DisplayFormat == "md5sum" && strings.HasPrefix(config.DigestName, "md5") {
 		fmt.Printf("%s  %s\n", message, fileDisplayPath)
+	} else if config.DisplayFormat == "cksum" {
+		fmt.Printf("%s (%s) = %s\n", config.DigestName, fileDisplayPath, message)
 	} else {
 		fmt.Fprintf(os.Stdout, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
 	}
