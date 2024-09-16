@@ -88,7 +88,25 @@ stderr -count=1 '^data.dat : phash : FAILED$'
 exec integrity -v -a --digest=phash data.dat
 stderr -count=1 '^data.dat : phash : FAILED : Error adding checksum : image: unknown format$'
 
-# FAILING
+# add an phash checksum on an image file - verbose
+exec integrity -v -a --digest=phash _MG_5859.JPG
+stdout -count=1 '^_MG_5859.JPG : phash : 8000000000000000 : added$'
+
+# add an phash checksum on an image file that already has a checksum
+exec integrity -a --digest=phash _MG_5859.JPG
+stdout -count=1 '^_MG_5859.JPG : phash : skipped$'
+
+# add an phash checksum on an image file type heic - verbose ToDo: Should this return an error?
+exec integrity -v -a --digest=phash _MG_5860.heic
+stderr -count=1 '^_MG_5860.heic : phash : FAILED : Error adding checksum : image: unknown format$'
+
+# add an phash checksum on an image file type png
+exec integrity -v -a --digest=phash _MG_5861.png
+stdout -count=1 '^_MG_5861.png : phash : 8000000000000000 : added$'
+
+# add an phash checksum on an image file type png
+exec integrity -v -a --digest=phash _MG_5862.tiff
+stdout -count=1 '^_MG_5862.tiff : phash : 8000000000000000 : added$'
 
 -- data.dat --
 hello world
