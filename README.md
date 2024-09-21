@@ -1,5 +1,7 @@
 
 [![Test, Build & Package](https://github.com/greycubesgav/integrity/actions/workflows/package.yml/badge.svg)](https://github.com/greycubesgav/integrity/actions/workflows/package.yml)
+[![go report card](https://goreportcard.com/badge/github.com/greycubesgav/integrity)](https://goreportcard.com/report/github.com/greycubesgav/integrity)
+[![Go Coverage](https://github.com/greycubesgav/integrity/wiki/coverage.svg)](https://raw.githack.com/wiki/greycubesgav/integrity/coverage.html)
 
 # Integrity
 > Command line utility for storing, displaying and checking a file's checksum
@@ -10,11 +12,11 @@
 * Checksum data is stored in the file's extended attributes so can move with the file
 * Multiple checksum algorithms available (defaults to sha1)
 
-| MD Functions | SHA Functions | SHA3 + SHA512 Functions  | Blake Functions | Misc Functions |
+| MD Functions | SHA Functions | SHA3 + SHA512 Functions  | Blake Functions | File Type Specific Functions |
 |--------------|---------------|--------------------------|-----------------|----------------|
-| md5          | **[sha1]**          | sha3 224                 | blake2s 256     | phash          |
-| md5sha1      | sha224        | sha3 256                 | blake2b 256     | ohash          |
-|              | sha256  | sha3 384                 | blake2b 384     |
+| md5          | **[sha1]**    | sha3 224                 | blake2s 256     | phash (images) |
+| md5sha1      | sha224        | sha3 256                 | blake2b 256     | ohash (videos) |
+|              | sha256        | sha3 384                 | blake2b 384     |
 |              | sha384        | sha3 512                 | blake2b 512     |
 |              | sha512        | sha512 224               |                 |
 |              |               | sha512 256               |                 |
