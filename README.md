@@ -2,6 +2,7 @@
 [![Test, Build & Package](https://github.com/greycubesgav/integrity/actions/workflows/package.yml/badge.svg)](https://github.com/greycubesgav/integrity/actions/workflows/package.yml)
 [![go report card](https://goreportcard.com/badge/github.com/greycubesgav/integrity)](https://goreportcard.com/report/github.com/greycubesgav/integrity)
 [![Go Coverage](https://github.com/greycubesgav/integrity/wiki/coverage.svg)](https://raw.githack.com/wiki/greycubesgav/integrity/coverage.html)
+[![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
 
 # Integrity
 > Command line utility for storing, displaying and checking a file's checksum
