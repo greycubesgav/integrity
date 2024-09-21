@@ -29,7 +29,7 @@ type integrity_fileCard struct {
 }
 
 // ToDo Add option to skip mac files http://www.westwind.com/reference/OS-X/invisibles.html
-// ToDo change errors to summarise at end like rsync - some errors occured
+// ToDo change errors to summarise at end like rsync - some errors occurred
 // ToDo check all errors goto stderr all normal messages go to stdout
 
 var config *Config = nil

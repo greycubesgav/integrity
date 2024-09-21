@@ -195,7 +195,7 @@ func (c *Config) parseCmdlineOpt() {
 
 	//-----------------------------------------------------------------------------------------
 	// Workout the digest we are using
-	// Heirarchy
+	// Hierarchy
 	// 1. binary name , e.g. integriy.sha1
 	// └ 2. command line all digest option
 	//   └ 3. command line option, e.g. --digest=sha256,sha512
