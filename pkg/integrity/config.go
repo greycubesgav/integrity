@@ -12,6 +12,7 @@ import (
 
 	"github.com/pborman/getopt/v2"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/term"
 )
 
 //go:embed help.txt
@@ -47,6 +48,7 @@ type Config struct {
 	ShowHelp            bool
 	ShowVersion         bool
 	ShowInfo            bool
+	showProgress        bool
 	Verbose             bool
 	Quiet               bool
 	VerboseLevel        int
@@ -71,6 +73,7 @@ type Config struct {
 	digestList          map[string]crypto.Hash
 	digestNames         []string
 	binaryDigestName    string
+	isTerminal          bool
 }
 
 func newConfig() *Config {
@@ -78,6 +81,7 @@ func newConfig() *Config {
 		ShowHelp:            false,
 		ShowVersion:         false,
 		ShowInfo:            false,
+		showProgress:        false,
 		Action_Check:        false,
 		Action_Add:          false,
 		Action_Delete:       false,
@@ -102,6 +106,7 @@ func newConfig() *Config {
 		digestList:          make(map[string]crypto.Hash),
 		digestNames:         make([]string, 0),
 		binaryDigestName:    "",
+		isTerminal:          term.IsTerminal(int(os.Stdout.Fd())),
 	}
 	c.parseCmdlineOpt()
 	return c
@@ -122,6 +127,7 @@ func (c *Config) parseCmdlineOpt() {
 	getopt.FlagLong(&c.Action_Transform, "fix-old", 0, "fix an old extended attribute value name to the current format")
 	getopt.FlagLong(&c.Option_AllDigests, "all", 'x', "include all digests, not just the default digest. Only applies to --delete and --list options")
 	getopt.FlagLong(&c.Option_Force, "force", 'f', "force the calculation and writing of a checksum even if one already exists (default behaviour is to skip files with checksums already stored)")
+	getopt.FlagLong(&c.showProgress, "progress", 'p', "show the progress of each file checksum calculation")
 	getopt.FlagLong(&c.Verbose, "verbose", 'v', "output more information.")
 	getopt.FlagLong(&c.Quiet, "quiet", 'q', "output less information.")
 	getopt.FlagLong(&c.logLevelName, "loglevel", 0, "set the logging level. One of: panic, fatal, error, warn, info, debug, trace.")

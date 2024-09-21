@@ -28,10 +28,14 @@ type integrity_fileCard struct {
 	digest_name string
 }
 
+// Buffer size for reading from file to show progress
+const fileBufferSize = 1024 * 1024 // 1MB
+
 // ToDo Add option to skip mac files http://www.westwind.com/reference/OS-X/invisibles.html
 // ToDo change errors to summarise at end like rsync - some errors occurred
 // ToDo check all errors goto stderr all normal messages go to stdout
 
+// Global config structure used througout the code
 var config *Config = nil
 
 func integ_testChecksumStored(currentFile *integrity_fileCard) (bool, error) {
@@ -173,8 +177,52 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", hashObj)
 		}
 		hashFunc := hashObj.New()
-		if _, err := io.Copy(hashFunc, fileHandle); err != nil {
-			return err
+		// If we're showing a progress bar, we write in chunks of 1MB
+		if config.showProgress {
+			fileInfo := *currentFile.FileInfo
+			readBuffer := make([]byte, fileBufferSize)
+			var fileTotalBytesRead int64 = 0
+			var filePercentageRead int64
+
+			// If we are being piped to another command we output newlines instead of rewriting line
+			var returnChar = '\r'
+			if !config.isTerminal {
+				returnChar = '\n'
+			}
+
+			for {
+				// Read a chunk of the file
+				n, err := fileHandle.Read(readBuffer)
+				if err != nil && err != io.EOF {
+					return err
+				} else if err == io.EOF {
+					break
+				}
+
+				// Write the data chunk to the hash
+				_, err = hashFunc.Write(readBuffer[:n])
+				if err != nil {
+					return err
+				}
+
+				// Update total bytes read
+				fileTotalBytesRead += int64(n)
+
+				// Percentage complete
+				filePercentageRead = fileTotalBytesRead * 100 / fileInfo.Size()
+
+				// Output progress, regardless of the verbosity level
+				fmt.Printf("%s : read : %d%%%c", currentFile.fullpath, filePercentageRead, returnChar)
+			}
+			// Return to start of line to overwrite percentage line
+			if config.isTerminal {
+				fmt.Printf("\r")
+			}
+		} else {
+			// If we're not showing a progress bar, we read the whole file and write it to the hash
+			if _, err := io.Copy(hashFunc, fileHandle); err != nil {
+				return err
+			}
 		}
 		currentFile.checksum = hex.EncodeToString(hashFunc.Sum(nil))
 	}
@@ -292,7 +340,7 @@ func displayFileErrorMessage(fileDisplayPath string, message string) {
 
 func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
 	if config.Option_ShortPaths {
-		var fileInfo os.FileInfo = *currentFile.FileInfo
+		fileInfo := *currentFile.FileInfo
 		return fileInfo.Name()
 	} else {
 		return currentFile.fullpath
@@ -319,7 +367,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 		}
 	}
 
-	config.logObject.Debugf("no errors contiuing\n")
+	config.logObject.Debugf("no errors continuing\n")
 
 	if !fileinfo.IsDir() {
 		var currentFile integrity_fileCard
@@ -576,7 +624,12 @@ func Run() int {
 				}
 			}
 		} else {
-			handle_path(path, path_fileinfo, err)
+			if err = handle_path(path, path_fileinfo, err); err != nil {
+				displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
+				config.returnCode = 13 // Error handling path
+				continue
+			}
+
 		}
 	}
 

@@ -69,6 +69,10 @@ exec touch data0.dat
 exec integrity -a -v data0.dat
 stdout '^data0.dat : sha1 : da39a3ee5e6b4b0d3255bfef95601890afd80709 : added$'
 
+# Output the progress of checking the file
+exec integrity -a -vfp data.dat
+stdout '^data.dat : read : 100%\ndata.dat : sha1 : 22596363b3de40b06f981fb85d82312e8c0ed511 : added$'
+
 # Disabled test, when running automated tests unable to set env
 # Set the digest through the Environment
 # exec INTEGRITY_DIGEST=blake2b_256 integrity -a data2.dat
@@ -107,6 +111,7 @@ stdout -count=1 '^_MG_5861.png : phash : 8000000000000000 : added$'
 # add an phash checksum on an image file type png
 exec integrity -v -a --digest=phash _MG_5862.tiff
 stdout -count=1 '^_MG_5862.tiff : phash : 8000000000000000 : added$'
+
 
 -- data.dat --
 hello world
