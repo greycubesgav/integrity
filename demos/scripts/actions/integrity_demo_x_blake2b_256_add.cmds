@@ -1,0 +1,3 @@
+# cols=115
+# rows=3
+integrity --digest blake2b_256 -v -a /home/data/archive.zip

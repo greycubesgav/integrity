@@ -1,2 +1,4 @@
+# cols=85
+# rows=5
 integrity -a /home/photos/_MG_5859.JPG
 integrity -cv /home/photos/_MG_5859.JPG

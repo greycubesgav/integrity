@@ -8,16 +8,20 @@ integrity -dxrq /home/photos
 
 for file in demos/scripts/actions/*.cmds; do
  if [ -f "$file" ]; then
-
     filename="${file%.*}"
     filename=$(basename -s .sh "$file")
     example="$filename"
 
+    # Check if the .gif file is newer than the .cast file
+    if [ -f "demos/output/${example}.gif" ] && [ -f "demos/scripts/actions/${example}" ] && [ "demos/output/${example}.gif" -nt "demos/scripts/actions/${example}" ]; then
+      echo "integrity_actions: demos/output/${example}.gif is newer than demos/scripts/actions/${example}, skipping..."
+      continue
+    fi
+
     echo "integrity_actions: removing any existing recordings"
     rm -f "demos/output/${example}.cast"
 
-    echo "integrity_examples: running ${example} from ${file}"
-    echo "demos/asciinema_automate.pl ${file}"
+    echo "integrity_actions: running [${example}] with demos/asciinema_automate.pl [${file}]"
     demos/asciinema_automate.pl "${file}"
     ret=$?
     if [ $ret -ne 0 ]; then
@@ -34,8 +38,5 @@ for file in demos/scripts/actions/*.cmds; do
       exit $ret
     fi
 
-
-    #asciinema-automation -dt 0 -sd 0 -aa "-c bash" "demos/scripts/actions/${example}.sh" "demos/output/${example}.cast"
-    #agg "demos/scripts/actions/${example}.cast" "demos/scripts/actions/${example}.gif"
   fi
 done

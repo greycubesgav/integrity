@@ -1,0 +1,5 @@
+# cols=85
+# rows=7
+integrity -c /home/photos/_MG_5860.heic
+echo "Error bit" >> /home/photos/_MG_5860.heic
+integrity -c /home/photos/_MG_5860.heic
