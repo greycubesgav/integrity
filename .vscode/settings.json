@@ -1,0 +1,6 @@
+{
+  "go.lintTool": "golangci-lint", // Enable more detailed linter
+  "go.coverOnSave": true, // Create code coverage report on save
+  "go.formatTool": "goimports", // Use goimports for formatting
+  "editor.formatOnSave": true, // Format go code on save
+}
