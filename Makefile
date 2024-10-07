@@ -256,7 +256,7 @@ package-deb-control-intel:
 	sed -i 's/<arch>/$(ARCHINTEL)/g' ./packaging/debian/control
 
 package-deb-control-arm:
-	sed -i 's/<arch>/$(ARCHARM)/g' ./packaging/debian/control
+	sed -i 's/^Architecture: .*$$/Architecture: $(ARCHARM)/g' ./packaging/debian/control
 
 docker-build-image:
 	docker build -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
