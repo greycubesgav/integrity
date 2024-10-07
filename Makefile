@@ -253,7 +253,7 @@ package-deb-control:
 	sed -i 's|<maintainer>|$(MAINTAINER)|g' ./packaging/debian/control
 
 package-deb-control-intel:
-	sed -i 's/<arch>/$(ARCHINTEL)/g' ./packaging/debian/control
+	sed -i 's/^Architecture: .*$$/Architecture: $(ARCHINTEL)/g' ./packaging/debian/control
 
 package-deb-control-arm:
 	sed -i 's/^Architecture: .*$$/Architecture: $(ARCHARM)/g' ./packaging/debian/control
