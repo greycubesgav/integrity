@@ -259,7 +259,7 @@ package-deb-control-arm:
 	sed -i 's/^Architecture: .*$$/Architecture: $(ARCHARM)/g' ./packaging/debian/control
 
 docker-build-image:
-	docker build -t "greycubesgav/integrity-build:$(VERSION)" -f Dockerfile .
+	docker build --platform=linux/arm64 -t "greycubesgav/integrity-build:$(VERSION)" -t "greycubesgav/integrity-build:latest" -f Dockerfile .
 
 docker-dev-image:
 	docker run -it --rm -v "$(PWD)":/usr/src/myapp -w /usr/src/myapp greycubesgav/integrity-build:$(VERSION)
