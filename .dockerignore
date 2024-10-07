@@ -1,10 +1,14 @@
 # Compiled files
 integrity
+/bin/
 # Packages
 *.deb
 *.rpm
 *.apk
 *.txz
+*.tar
+*.tgz
+/pkgs/*
 # Other
 .git
 .vscode
