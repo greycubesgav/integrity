@@ -11,4 +11,4 @@ pkgs/
 # Binaries
 integrity.*
 # Demo outputs
-demos/output
+demos/output/*.cast
