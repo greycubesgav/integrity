@@ -318,4 +318,8 @@ git-version-push:
 	$(MAKE) git-push-tag
 
 record-examples:
-	./demos/integrity_generate_casts.sh
+	./demos/integrity_docker_gencasts.sh
+
+setup-go-dev-env:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
