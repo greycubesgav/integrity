@@ -6,20 +6,36 @@
 echo "integrity_actions: removing any existing checksums"
 integrity -dxrq /home/photos
 
-echo "integrity_actions: set the prompt"
-
-export TERM=xterm-256color
-export PROMPT_COMMAND=''
-export PS1='\[\e[36m\][\W]\[\e(B\e[m\]\n$ '
-
-for file in demos/scripts/actions/*.sh; do
+for file in demos/scripts/actions/*.cmds; do
  if [ -f "$file" ]; then
+
     filename="${file%.*}"
     filename=$(basename -s .sh "$file")
     example="$filename"
-    echo "integrity_examples: running ${example}"
+
+    echo "integrity_actions: removing any existing recordings"
     rm -f "demos/output/${example}.cast"
-    asciinema-automation -dt 0 -sd 0 -aa "-c bash" "demos/scripts/actions/${example}.sh" "demos/output/${example}.cast"
+
+    echo "integrity_examples: running ${example} from ${file}"
+    echo "demos/asciinema_automate.pl ${file}"
+    demos/asciinema_automate.pl "${file}"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      echo "integrity_actions: ${example} failed to create casst, with return code $ret"
+      exit $ret
+    fi
+
+    echo "Convert the recording to a gif"
+    echo "agg demos/output/${example}.cast demos/output/${example}.gif"
+    agg "demos/output/${example}.cast" "demos/output/${example}.gif"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      echo "integrity_actions: ${example} agg failed to create gif, with return code $ret"
+      exit $ret
+    fi
+
+
+    #asciinema-automation -dt 0 -sd 0 -aa "-c bash" "demos/scripts/actions/${example}.sh" "demos/output/${example}.cast"
     #agg "demos/scripts/actions/${example}.cast" "demos/scripts/actions/${example}.gif"
   fi
 done
