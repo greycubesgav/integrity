@@ -301,6 +301,12 @@ test-github-package:
 test-github-test:
 	act push -j test
 
+test-go-blank:
+	errcheck -blank ./...
+
+test-go-cyclo:
+	gocyclo -over 15 .
+
 show-version:
 	@echo $(VERSION)
 
@@ -323,3 +329,4 @@ record-examples:
 setup-go-dev-env:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+	go install github.com/kisielk/errcheck@latest
