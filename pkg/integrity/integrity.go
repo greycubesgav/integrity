@@ -156,7 +156,12 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	if err != nil {
 		return err
 	}
-	defer fileHandle.Close()
+	// Add a function to defer to ensure any issue closing the file is reported
+	defer func() {
+		if err := fileHandle.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing file: %s\n", err)
+		}
+	}()
 
 	config.logObject.Debugf("integ_generateChecksum config.DigestName:%s\n", config.DigestName)
 
@@ -315,7 +320,7 @@ func integ_printChecksum(currentFile *integrity_fileCard, fileDisplayPath string
 }
 
 func displayFileMessageNoDigest(fileDisplayPath string, message string) {
-	fmt.Fprintf(os.Stdout, "%s : %s\n", fileDisplayPath, message)
+	fmt.Printf("%s : %s\n", fileDisplayPath, message)
 }
 
 func displayFileErrorMessageNoDigest(fileDisplayPath string, message string) {
@@ -330,7 +335,7 @@ func displayFileMessage(fileDisplayPath string, message string) {
 	} else if config.DisplayFormat == "cksum" {
 		fmt.Printf("%s (%s) = %s\n", config.DigestName, fileDisplayPath, message)
 	} else {
-		fmt.Fprintf(os.Stdout, "%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
+		fmt.Printf("%s : %s : %s\n", fileDisplayPath, config.DigestName, message)
 	}
 }
 

@@ -18,7 +18,12 @@ func oshashFromFilePath(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	// Add a function to defer to ensure any issue closing the file is reported
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing file: %s\n", err)
+		}
+	}()
 
 	fi, err := f.Stat()
 	if err != nil {

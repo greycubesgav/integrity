@@ -21,7 +21,13 @@ func integrityPhashFromFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+
+	// Add a function to defer to ensure any issue closing the file is reported
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing file: %s\n", err)
+		}
+	}()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
