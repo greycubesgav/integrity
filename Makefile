@@ -317,6 +317,7 @@ git-push-tag:
 	git push origin v$(VERSION)
 
 git-version-push:
+	! git diff --quiet pkg/integrity/version.go || (echo "Please commit changes to pkg/integrity/version.go first" && exit 1)
 	git add pkg/integrity/version.go
 	git commit -m ":bookmark: Updated to version v$(VERSION)"
 	git push
