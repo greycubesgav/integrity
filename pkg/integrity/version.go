@@ -1,3 +1,3 @@
 package integrity
 
-const integrity_version = "0.4.5"
+const integrity_version = "0.4.6"
