@@ -15,10 +15,10 @@ import (
 	"golang.org/x/term"
 )
 
-//go:embed help.txt
+//go:embed docs/help.txt
 var helpText string
 
-//go:embed usage.txt
+//go:embed docs/usage.txt
 var usageText string
 
 const integrity_website = "https://github.com/greycubesgav/integrity"
@@ -48,6 +48,7 @@ type Config struct {
 	ShowHelp            bool
 	ShowVersion         bool
 	ShowInfo            bool
+	ShowUsage           bool
 	showProgress        bool
 	Verbose             bool
 	Quiet               bool
@@ -81,6 +82,7 @@ func newConfig() *Config {
 		ShowHelp:            false,
 		ShowVersion:         false,
 		ShowInfo:            false,
+		ShowUsage:           false,
 		showProgress:        false,
 		Action_Check:        false,
 		Action_Add:          false,
@@ -120,6 +122,7 @@ func (c *Config) parseCmdlineOpt() {
 	getopt.FlagLong(&c.ShowHelp, "help", 'h', "show this help")
 	getopt.FlagLong(&c.ShowVersion, "version", 0, "show version")
 	getopt.FlagLong(&c.ShowInfo, "info", 0, "show information")
+	getopt.FlagLong(&c.ShowUsage, "usage", 0, "show command flag usage")
 	getopt.FlagLong(&c.Action_Check, "check", 'c', "check the checksum of the file matches the one stored in the extended attributes [default]")
 	getopt.FlagLong(&c.Action_Add, "add", 'a', "calculate the checksum of the file and add it to the extended attributes")
 	getopt.FlagLong(&c.Action_Delete, "delete", 'd', "delete a checksum stored for a file")
@@ -150,6 +153,12 @@ func (c *Config) parseCmdlineOpt() {
 	if c.ShowVersion {
 		fmt.Printf("%s\n", integrity_version)
 		c.returnCode = 1 // Show version
+		return
+	}
+	// Show just the command flags and exit
+	if c.ShowUsage {
+		getopt.Usage()
+		c.returnCode = 1 // Show info
 		return
 	}
 
@@ -329,6 +338,8 @@ func printHelp() {
 	fmt.Printf("integrity version %s\n", integrity_version)
 	fmt.Printf("Web site: %s\n", integrity_website)
 	fmt.Println(helpText)
-	getopt.Usage()
+	//getopt.Usage()
+	getopt.PrintUsage(os.Stdout)
+	fmt.Println("Usage Examples:")
 	fmt.Println(usageText)
 }

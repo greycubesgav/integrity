@@ -9,5 +9,3 @@ date and ensure it's contents have not been changed or become corrupted.
 
 The checksum data is also useful for efficiently finding duplicate files in
 different directories.
-
-Usage: integrity [OPTIONS] FILE|PATH

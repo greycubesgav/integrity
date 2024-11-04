@@ -1,5 +1,3 @@
-Usage Examples:
-
   Checking a file's integrity checksum
     integrity myfile.jpg
     > myfile.jpg : sha1 : PASSED
