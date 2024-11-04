@@ -1,4 +1,4 @@
-FROM golang:1.23
+FROM golang:1.23.2
 
 # Tell the container we're noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
