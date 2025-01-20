@@ -1,6 +1,6 @@
 module github.com/greycubesgav/integrity
 
-go 1.23.4
+go 1.23.5
 
 require (
 	github.com/corona10/goimagehash v1.1.0
