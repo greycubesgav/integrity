@@ -3,19 +3,31 @@ name: Test
 on:
   workflow_call:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
       with:
         go-version-file: './go.mod'
-    - run: go version
 
-    - name: Test
+    - name: Display Go version
+      run: go version
+
+    - name: Tidy Go modules
+      run: go mod tidy
+
+    - name: Run tests
       run: make test
 
     - name: Update coverage report
