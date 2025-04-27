@@ -159,11 +159,12 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	// Add a function to defer to ensure any issue closing the file is reported
 	defer func() {
 		if err := fileHandle.Close(); err != nil {
+			// We don't use config.log here as we want to ensure this is a simple as possible
 			fmt.Fprintf(os.Stderr, "Error closing file: %s\n", err)
 		}
 	}()
 
-	config.logObject.Debugf("integ_generateChecksum config.DigestName:%s\n", config.DigestName)
+	config.log("debug", "integ_generateChecksum config.DigestName:%s\n", config.DigestName)
 
 	if config.DigestName == "oshash" {
 		currentFile.checksum, err = oshashFromFilePath(currentFile.fullpath)
@@ -178,7 +179,7 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 	} else {
 		hashObj := config.digestList[config.DigestName]
 		if !hashObj.Available() {
-			config.logObject.Debugf("integ_generateChecksum !hashObj.Available():%s\n", config.DigestName)
+			config.log("debug", "integ_generateChecksum !hashObj.Available():%s\n", config.DigestName)
 			return fmt.Errorf("integ_generateChecksum: hash object [%s] not supported", hashObj)
 		}
 		hashFunc := hashObj.New()
@@ -231,7 +232,7 @@ func integ_generateChecksum(currentFile *integrity_fileCard) error {
 		}
 		currentFile.checksum = hex.EncodeToString(hashFunc.Sum(nil))
 	}
-	config.logObject.Debugf("integ_generateChecksum currentFile.checksum:%s\n", currentFile.checksum)
+	config.log("debug", "integ_generateChecksum currentFile.checksum:%s\n", currentFile.checksum)
 	return nil
 }
 
@@ -352,10 +353,73 @@ func integ_generatefileDisplayPath(currentFile *integrity_fileCard) string {
 	}
 }
 
+func Run() int {
+	config = newConfig()
+
+	config.log("debug", "integrity.Run()\n")
+	config.log("debug", "config.returnCode: %d\n", config.returnCode)
+
+	switch config.returnCode {
+	case 0:
+		// config.returnCode=0 reserved for success
+	case 1:
+		// config.returnCode=1 reserved for show help runs, we show output and then exit but it wasn't an error
+		return 0
+	default:
+		return config.returnCode
+	}
+
+	for _, path := range getopt.Args() {
+		// ToDo: Consider how to deal with symlinks, should be follow them?
+		config.log("debug", "path: '%s'\n", path)
+		path_fileinfo, err := os.Stat(path)
+		// If we can stat the given file
+		if err != nil {
+			errorString := err.Error()
+			if strings.Contains(errorString, "no such file or directory") {
+				config.log("error", "%s : no such file or directory\n", path)
+				config.returnCode = 10 // No such file or directory
+				continue
+			}
+			displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
+			config.returnCode = 12 // Error stating file
+			continue
+		}
+
+		if path_fileinfo.IsDir() {
+			config.log("debug", "path is directory: recurse? '%t'\n", config.Option_Recursive)
+			if config.Option_Recursive {
+				// Walk the directory structure
+				err := filepath.Walk(path, handle_path)
+				if err != nil {
+					config.log("debug", "Error from filepath.Walk: err(%s)", err.Error())
+					return 1
+				}
+			} else {
+				switch config.VerboseLevel {
+				case 0, 1:
+					// Don't print anything we're 'quiet' / this is not an error
+				case 2:
+					displayFileMessageNoDigest(path, "skipping directory")
+				}
+			}
+		} else {
+			if err = handle_path(path, path_fileinfo, err); err != nil {
+				displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
+				config.returnCode = 13 // Error handling path
+				continue
+			}
+		}
+	}
+
+	config.log("debug", "config.returnCode: %d\n", config.returnCode)
+	return config.returnCode
+}
+
 func handle_path(path string, fileinfo os.FileInfo, err error) error {
-	config.logObject.Debugf("handle_path: '%s'\n", path)
+	config.log("debug", "handle_path: '%s'\n", path)
 	if err != nil {
-		config.logObject.Debugf("handle_path: error '%s'\n", err)
+		config.log("debug", "handle_path: error '%s'\n", err)
 		if strings.Contains(err.Error(), "permission denied") {
 			switch config.VerboseLevel {
 			case 0, 1:
@@ -367,12 +431,12 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			return filepath.SkipDir
 		} else {
 			// Handle the error and return it to stop walking
-			fmt.Fprintf(os.Stderr, "Error walking the path : %v : %v\n", path, err)
+			config.log("error", "Error walking the path : %v : %v\n", path, err)
 			return err
 		}
 	}
 
-	config.logObject.Debugf("no errors continuing\n")
+	config.log("debug", "no errors continuing\n")
 
 	if !fileinfo.IsDir() {
 		var currentFile integrity_fileCard
@@ -387,7 +451,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
 				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
-				config.logObject.Debugf("list: '%s'\n", config.xattribute_fullname)
+				config.log("debug", "list: '%s'\n", config.xattribute_fullname)
 				if err = integ_printChecksum(&currentFile, fileDisplayPath); err != nil {
 					// Only continue as the function would have printed any error already
 					continue
@@ -398,7 +462,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
 				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
-				config.logObject.Debugf("delete: '%s'\n", config.xattribute_fullname)
+				config.log("debug", "delete: '%s'\n", config.xattribute_fullname)
 				hadAttribute, err := integ_removeChecksum(&currentFile)
 				if err != nil {
 					switch config.VerboseLevel {
@@ -434,7 +498,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
 				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
-				config.logObject.Debugf("add: '%s'\n", config.xattribute_fullname)
+				config.log("debug", "add: '%s'\n", config.xattribute_fullname)
 				if !config.Option_Force {
 					var haveDigestStored bool
 					haveDigestStored, err = integ_testChecksumStored(&currentFile)
@@ -485,7 +549,7 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 			for _, digestName := range config.digestNames {
 				config.DigestName = digestName
 				config.xattribute_fullname = config.xattribute_prefix + config.DigestName
-				config.logObject.Debugf("check: '%s'\n", config.xattribute_fullname)
+				config.log("debug", "check: '%s'\n", config.xattribute_fullname)
 				var haveDigestStored bool
 				if haveDigestStored, err = integ_testChecksumStored(&currentFile); err != nil {
 					switch config.VerboseLevel {
@@ -568,76 +632,10 @@ func handle_path(path string, fileinfo os.FileInfo, err error) error {
 				}
 			}
 		default:
-			fmt.Fprintf(os.Stderr, "Error : Unknown action \"%s\"\n", config.Action)
+			config.log("error", "Error : Unknown action \"%s\"\n", config.Action)
 			config.returnCode = 9 // Unknown action
 			return errors.New("unknown action")
 		}
 	}
 	return nil
-}
-
-func Run() int {
-
-	config = newConfig()
-
-	config.logObject.Debugf("integrity.Run()\n")
-	config.logObject.Debugf("config.returnCode: %d\n", config.returnCode)
-
-	switch config.returnCode {
-	case 0:
-		// config.returnCode=0 reserved for success
-	case 1:
-		// config.returnCode=1 reserved for show help runs, we show output and then exit but it wasn't an error
-		return 0
-	default:
-		return config.returnCode
-	}
-
-	for _, path := range getopt.Args() {
-
-		// ToDo: Consider how to deal with symlinks, should be follow them?
-		config.logObject.Debugf("path: '%s'\n", path)
-		path_fileinfo, err := os.Stat(path)
-		// If we can stat the given file
-		if err != nil {
-			errorString := err.Error()
-			if strings.Contains(errorString, "no such file or directory") {
-				fmt.Fprintf(os.Stderr, "%s : no such file or directory\n", path)
-				config.returnCode = 10 // No such file or directory
-				continue
-			}
-			displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
-			config.returnCode = 12 // Error stating file
-			continue
-		}
-
-		if path_fileinfo.IsDir() {
-			config.logObject.Debugf("path is directory: recurse? '%t'\n", config.Option_Recursive)
-			if config.Option_Recursive {
-				// Walk the directory structure
-				err := filepath.Walk(path, handle_path)
-				if err != nil {
-					config.logObject.Debugf("Error from filepath.Walk: err(%s)", err.Error())
-					return 1
-				}
-			} else {
-				switch config.VerboseLevel {
-				case 0, 1:
-					// Don't print anything we're 'quiet' / this is not an error
-				case 2:
-					displayFileMessageNoDigest(path, "skipping directory")
-				}
-			}
-		} else {
-			if err = handle_path(path, path_fileinfo, err); err != nil {
-				displayFileErrorMessageNoDigest(path, fmt.Sprintf("ERROR : %s", err.Error()))
-				config.returnCode = 13 // Error handling path
-				continue
-			}
-
-		}
-	}
-
-	config.logObject.Debugf("config.returnCode: %d\n", config.returnCode)
-	return config.returnCode
 }

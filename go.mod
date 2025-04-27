@@ -7,7 +7,6 @@ require (
 	github.com/pborman/getopt/v2 v2.1.0
 	github.com/pkg/xattr v0.4.10
 	github.com/rogpeppe/go-internal v1.13.1
-	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.37.0
 	golang.org/x/image v0.21.0
 	golang.org/x/term v0.31.0

@@ -11,8 +11,19 @@ import (
 	"strings"
 
 	"github.com/pborman/getopt/v2"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
+)
+
+type logLevel int
+
+const (
+	logLevelPanic logLevel = iota
+	logLevelFatal
+	logLevelError
+	logLevelWarn
+	logLevelInfo
+	logLevelDebug
+	logLevelTrace
 )
 
 //go:embed docs/help.txt
@@ -69,12 +80,43 @@ type Config struct {
 	xattribute_fullname string
 	xattribute_prefix   string
 	logLevelName        string
-	logObject           *logrus.Logger
+	logLevel            logLevel
 	returnCode          int // used to store a return code for the cmd util
 	digestList          map[string]crypto.Hash
 	digestNames         []string
 	binaryDigestName    string
 	isTerminal          bool
+}
+
+// Logging function, only outputs if the log level is less than or equal to the current log level
+func (c *Config) log(level string, format string, args ...interface{}) {
+	var logLevel logLevel
+	switch level {
+	case "panic":
+		logLevel = logLevelPanic
+	case "fatal":
+		logLevel = logLevelFatal
+	case "error":
+		logLevel = logLevelError
+	case "warn":
+		logLevel = logLevelWarn
+	case "info":
+		logLevel = logLevelInfo
+	case "debug":
+		logLevel = logLevelDebug
+	case "trace":
+		logLevel = logLevelTrace
+	default:
+		logLevel = logLevelInfo
+	}
+
+	if logLevel <= c.logLevel {
+		if logLevel <= 2 {
+			fmt.Fprintf(os.Stderr, format, args...)
+		} else {
+			fmt.Fprintf(os.Stdout, format, args...)
+		}
+	}
 }
 
 func newConfig() *Config {
@@ -103,7 +145,7 @@ func newConfig() *Config {
 		xattribute_fullname: "",
 		xattribute_prefix:   "",
 		logLevelName:        "info",
-		logObject:           logrus.New(),
+		logLevel:            logLevelInfo,
 		returnCode:          0,
 		digestList:          make(map[string]crypto.Hash),
 		digestNames:         make([]string, 0),
@@ -176,21 +218,21 @@ func (c *Config) parseCmdlineOpt() {
 	// Setup the logging level
 	//-----------------------------------------------------------------------------------------
 	if c.logLevelName == "trace" {
-		c.logObject.SetLevel(logrus.TraceLevel)
+		c.logLevel = logLevelTrace
 	} else if c.logLevelName == "debug" {
-		c.logObject.SetLevel(logrus.DebugLevel)
+		c.logLevel = logLevelDebug
 	} else if c.logLevelName == "info" {
-		c.logObject.SetLevel(logrus.InfoLevel)
+		c.logLevel = logLevelInfo
 	} else if c.logLevelName == "warn" {
-		c.logObject.SetLevel(logrus.WarnLevel)
+		c.logLevel = logLevelWarn
 	} else if c.logLevelName == "fatal" {
-		c.logObject.SetLevel(logrus.FatalLevel)
+		c.logLevel = logLevelFatal
 	} else if c.logLevelName == "panic" {
-		c.logObject.SetLevel(logrus.PanicLevel)
+		c.logLevel = logLevelPanic
 	} else {
-		c.logObject.SetLevel(logrus.InfoLevel)
+		c.logLevel = logLevelInfo
 	}
-	c.logObject.Debugf("LogObjectlevel : [%s]\n", c.logObject.Level)
+	c.log("debug", "LogObjectlevel : [%d]\n", c.logLevel)
 
 	//-----------------------------------------------------------------------------------------
 	// Main Actions
@@ -206,7 +248,7 @@ func (c *Config) parseCmdlineOpt() {
 	} else if c.Action_Transform {
 		c.Action = "transform"
 	}
-	c.logObject.Debugf("c.Action: '%s'\n", c.Action)
+	c.log("debug", "c.Action: '%s'\n", c.Action)
 
 	//-----------------------------------------------------------------------------------------
 	// Workout the digest we are using
@@ -247,7 +289,7 @@ func (c *Config) parseCmdlineOpt() {
 
 	// Check if the display format doesn't make the digest
 	if c.DisplayFormat != "" {
-		c.logObject.Debugf("c.DisplayFormat: '%s'\n", c.DisplayFormat)
+		c.log("debug", "c.DisplayFormat: '%s'\n", c.DisplayFormat)
 		// Either we override the action to be list, or we error that the action is not list
 		// if c.Action != "list" {
 		// 	fmt.Fprintf(os.Stderr, "Error : Display format provided but not performing list '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
@@ -260,14 +302,14 @@ func (c *Config) parseCmdlineOpt() {
 		switch c.DisplayFormat {
 		case "sha1sum":
 			if c.binaryDigestName != "" && c.binaryDigestName != "sha1" {
-				fmt.Fprintf(os.Stderr, "Error : asked for sha1sum output but not sha1 binary.\n")
+				c.log("error", "Error : asked for sha1sum output but not sha1 binary.\n")
 				c.returnCode = 6 // sha1sum output but not .md5 binary
 				return
 			}
 			c.digestNames = []string{"sha1"}
 		case "md5sum":
 			if c.binaryDigestName != "" && c.binaryDigestName != "md5" {
-				fmt.Fprintf(os.Stderr, "Error : asked for md5sum output but not md5 binary.\n")
+				c.log("error", "Error : asked for md5sum output but not md5 binary.\n")
 				c.returnCode = 7 // md5sum output but not .md5 binary
 				return
 			}
@@ -275,12 +317,12 @@ func (c *Config) parseCmdlineOpt() {
 		case "cksum":
 			// We will output any checksum in this case, no need to force the digest
 		default:
-			fmt.Fprintf(os.Stderr, "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
+			c.log("error", "Error : unknown display format '%s'\n Should be one of: sha1sum, md5sum\n", c.DisplayFormat)
 			c.returnCode = 4 // Unknown display format
 			return
 		}
 	}
-	c.logObject.Debugf("c.digestNames: '%s'\n", c.digestNames)
+	c.log("debug", "c.digestNames: '%s'\n", c.digestNames)
 
 	//-----------------------------------------------------------------------------------------
 	// Check we know all the given digest names
@@ -290,7 +332,7 @@ func (c *Config) parseCmdlineOpt() {
 			if digest, exists := digestTypes[digestName]; exists {
 				c.digestList[digestName] = digest
 			} else {
-				fmt.Fprintf(os.Stderr, "Error : unknown digest type '%s'\n", digestName)
+				c.log("error", "Error : unknown digest type '%s'\n", digestName)
 				c.returnCode = 5 // Unknown digest
 				return
 			}
@@ -306,20 +348,15 @@ func (c *Config) parseCmdlineOpt() {
 	case "linux":
 		c.xattribute_prefix = fmt.Sprintf("user.%s.", xattribute_name)
 	default:
-		c.logObject.Fatalf("Error: non-supported OS type '%s'\n", runtime.GOOS)
-		c.logObject.Fatalf("Supported OS types 'darwin, freebsd, linux'\n")
+		c.log("error", "Error: non-supported OS type '%s'\nSupported OS types 'darwin, freebsd, linux'\n", runtime.GOOS)
 		c.returnCode = 3 // Unknown OS
 		return
 	}
-	c.logObject.Debugf("c.xattribute_prefix: '%s'\n", c.xattribute_prefix)
+	c.log("debug", "c.xattribute_prefix: '%s'\n", c.xattribute_prefix)
 
 	// Show internal info about the apps
 	if c.ShowInfo {
-		fmt.Printf("integrity version: %s\n", integrity_version)
-		fmt.Printf("integrity attribute prefix: %s\n", c.xattribute_prefix)
-		fmt.Printf("runtime environment: %s\n", runtime.GOOS)
-		fmt.Printf("digest list: %s\n", c.digestNames)
-		fmt.Printf("integrity verbose level: %d\n", c.VerboseLevel)
+		c.log("info", "integrity version: %s\nintegrity attribute prefix: %s\nruntime environment: %s\ndigest list: %s\nintegrity verbose level: %d\n", integrity_version, c.xattribute_prefix, runtime.GOOS, c.digestNames, c.VerboseLevel)
 		c.returnCode = 1 // Show info
 		return
 	}
