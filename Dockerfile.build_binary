@@ -1,0 +1,38 @@
+FROM golang:1.24.3-alpine3.21 AS build
+
+# Tell the container we're noninteractive
+#ENV DEBIAN_FRONTEND=noninteractive
+
+# Install make for apline
+RUN apk add --no-cache make
+# Install build dependencies
+#RUN apt-get update && apt-get install -y binutils squashfs-tools ruby-full make golang rpm sudo asciinema fonts-liberation
+
+# https://github.com/asciinema/agg/releases/download/v1.4.3/agg-aarch64-unknown-linux-gnu
+# Add asciinema
+
+# Install fpm for package building
+#RUN gem install fpm
+
+# Add agg to render asciinema casts to gifs
+#RUN curl -L -o /bin/agg https://github.com/asciinema/agg/releases/download/v1.4.3/agg-aarch64-unknown-linux-gnu
+#RUN chmod +x /bin/agg
+
+# Setup a non-root user
+ENV USER=go
+#RUN useradd --create-home --home-dir "/home/${USER}/" --shell /bin/bash --uid 1000 --user-group -G users "${USER}"
+#RUN echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && chmod 440 "/etc/sudoers.d/${USER}"
+#USER ${USER}
+
+# Add the application
+WORKDIR /app
+COPY --chown=${USER}:${USER} ./ ./
+RUN go mod download
+#RUN make test
+RUN make build
+
+FROM scratch
+
+COPY --from=build /app/bin/integrity /usr/local/bin/integrity
+
+ENTRYPOINT ["/usr/local/bin/integrity"]
