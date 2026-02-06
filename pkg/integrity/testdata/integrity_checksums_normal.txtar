@@ -26,7 +26,7 @@ exec integrity -a data.dat
 stdout '^data.dat : sha1 : skipped$'
 
 # Update the file contents and verify file difference is detected
-exec bash -c 'echo tiger > data.dat'
+exec sh -c 'echo tiger > data.dat'
 exec integrity -c data.dat
 stderr '^data.dat : sha1 : FAILED$'
 

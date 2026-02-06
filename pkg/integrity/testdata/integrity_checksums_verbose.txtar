@@ -27,7 +27,7 @@ exec integrity -v -a data.dat
 stdout '^data.dat : sha1 : skipped : We already have a checksum stored$'
 
  # Update the file contents and verify file difference is detected
-exec bash -c 'echo tiger > data.dat'
+exec sh -c 'echo tiger > data.dat'
 exec integrity -v -c data.dat
 cmp stderr check_differ_checksums.txt
 
