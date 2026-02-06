@@ -356,7 +356,7 @@ func (c *Config) parseCmdlineOpt() {
 
 	// Show internal info about the apps
 	if c.ShowInfo {
-		c.log("info", "integrity version: %s\nintegrity attribute prefix: %s\nruntime environment: %s\ndigest list: %s\nintegrity verbose level: %d\n", integrity_version, c.xattribute_prefix, runtime.GOOS, c.digestNames, c.VerboseLevel)
+		c.log("info", "integrity version: %s\nintegrity attribute prefix: %s\nruntime environment: %s\nruntime architecture: %s\ndigest list: %s\nintegrity verbose level: %d\n", integrity_version, c.xattribute_prefix, runtime.GOOS, runtime.GOARCH, c.digestNames, c.VerboseLevel)
 		c.returnCode = 1 // Show info
 		return
 	}
