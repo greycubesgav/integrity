@@ -13,22 +13,22 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: './go.mod'
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "./go.mod"
 
-    - name: Display Go version
-      run: go version
+      - name: Display Go version
+        run: go version
 
-    - name: Tidy Go modules
-      run: go mod tidy
+      - name: Tidy Go modules
+        run: go mod tidy
 
-    - name: Run tests
-      run: make test
+      - name: Run tests
+        run: make test
 
-    - name: Update coverage report
-      uses: ncruces/go-coverage-report@main
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@main

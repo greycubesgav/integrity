@@ -2,14 +2,12 @@ name: Create Release
 
 # Trigger the workflow manually via the GitHub Actions UI
 on:
-
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
-
   build-macos:
     uses: ./.github/workflows/build-macos.yml
 
@@ -21,34 +19,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-    - name: Download Packages from package-all step
-      uses: actions/download-artifact@v4
-      with:
-        name: integrity_packages
-        path: pkgs/
+      - name: Download Packages from package-all step
+        uses: actions/download-artifact@v5
+        with:
+          name: integrity_packages
+          path: pkgs/
 
-    - name: Download Packages from build-macos step
-      uses: actions/download-artifact@v4
-      with:
-        name: integrity_macos_binaries
-        path: pkgs/
+      - name: Download Packages from build-macos step
+        uses: actions/download-artifact@v5
+        with:
+          name: integrity_macos_binaries
+          path: pkgs/
 
-    - name: Rename macos binary
-      run: |
-        mv pkgs/integrity pkgs/integrity_macos
+      - name: Rename macos binary
+        run: |
+          mv pkgs/integrity pkgs/integrity_macos
 
-    - name: Display structure of downloaded packages
-      run: ls -R pkgs/
+      - name: Display structure of downloaded packages
+        run: ls -R pkgs/
 
-    - name: Create new release and upload packages
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: pkgs/*
-        tag: ${{ github.ref }}
-        overwrite: true
-        file_glob: true
-        draft: true
+      - name: Create new release and upload packages
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: pkgs/*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+          draft: true
